@@ -4,3 +4,4 @@ dist/
 .env
 *.log
 e2e-output/
+docs/*.zip

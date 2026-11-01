@@ -82,6 +82,8 @@ Tipurile, registrele și departamentele trebuie să existe; maparea nu le creeaz
 
 ## Scenariul de demo
 
+Ghidul complet, cu capturi pentru fiecare pagină și textul de prezentare, este în [docs/demo](docs/demo/README.md).
+
 | Pas | Ce se arată | Cont |
 | --- | --- | --- |
 | 2 | Autentificare cu MFA | `admin.demo` |

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Star } from 'lucide-react';
-import { api, errorMessage } from '../api';
+import { api, errorMessage, qs } from '../api';
 import { useAuth } from '../auth';
 import { ERP_KIND_LABEL, erpRecordLabel, ErpPicker, type ErpRecord } from '../components/ErpPicker';
 import { Snippet } from '../components/Snippet';
-import { Alert, Badge, Empty, ErrorAlert, Field, Loading, PageHeader, Pagination, StatusBadge } from '../components/Ui';
+import { Alert, Badge, Empty, ErrorAlert, Field, Loading, Modal, PageHeader, Pagination, StatusBadge } from '../components/Ui';
 import { fmtDate } from '../format';
 import { useAsync, usePageTitle } from '../hooks';
 import { DIRECTION_LABELS, DOC_STATUS } from '../labels';
@@ -27,6 +27,39 @@ function ErpFilter({ value, onChange }: { value: string; onChange: (id: string) 
         <button type="button" className="btn btn-sm" onClick={() => onChange('')}>Schimbă</button>
       </p>
     </div>
+  );
+}
+
+/** Exportul unui registru pe un an, ca fișier CSV care se deschide în Excel și se poate tipări. */
+function RegisterExport({ meta, onClose }: { meta: Meta | undefined; onClose: () => void }) {
+  const registers = meta?.registers ?? [];
+  const [registerId, setRegisterId] = useState('');
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const selected = registerId || (registers[0] ? String(registers[0].id) : '');
+  const validYear = /^\d{4}$/.test(year);
+  return (
+    <Modal
+      title="Export registru"
+      onClose={onClose}
+      footer={(
+        <>
+          <button type="button" className="btn" onClick={onClose}>Renunță</button>
+          {selected && validYear
+            ? <a className="btn btn-primary" href={`/api/documents/export/register${qs({ registerId: selected, year })}`} onClick={onClose}>Descarcă fișierul CSV</a>
+            : <button type="button" className="btn btn-primary" disabled>Descarcă fișierul CSV</button>}
+        </>
+      )}
+    >
+      <p>Fișierul conține documentele din registru la care aveți acces, în ordinea numerelor.</p>
+      <Field label="Registru" required>
+        <select value={selected} onChange={(e) => setRegisterId(e.target.value)}>
+          {registers.map((r) => <option key={r.id} value={r.id}>{r.name} ({r.code})</option>)}
+        </select>
+      </Field>
+      <Field label="An" required error={validYear ? undefined : 'Scrieți anul cu patru cifre.'}>
+        <input inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value.trim())} />
+      </Field>
+    </Modal>
   );
 }
 
@@ -81,6 +114,7 @@ export default function DocumentsPage() {
   const selectedType = meta.data?.documentTypes.find((t) => String(t.id) === form.typeId);
   const folderOptions = useMemo(() => indentedFolders(meta.data?.folders ?? []), [meta.data]);
   const [favError, setFavError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const toggleFavorite = async (doc: DocListItem) => {
     setFavError(null);
@@ -105,7 +139,12 @@ export default function DocumentsPage() {
     <>
       <PageHeader
         title="Documente"
-        actions={can('register') ? <Link to="/documente/nou" className="btn btn-primary phone-only">Înregistrează document</Link> : undefined}
+        actions={can('register') ? (
+          <>
+            <button type="button" className="btn" onClick={() => setExporting(true)}>Export registru</button>
+            <Link to="/documente/nou" className="btn btn-primary phone-only">Înregistrează document</Link>
+          </>
+        ) : undefined}
       />
 
       <form className="search-box" onSubmit={apply} role="search">
@@ -194,6 +233,7 @@ export default function DocumentsPage() {
         )}
       </form>
 
+      {exporting && <RegisterExport meta={meta.data} onClose={() => setExporting(false)} />}
       {favError && <Alert kind="error">{favError}</Alert>}
       <ErrorAlert error={list.error} retry={() => void list.reload()} />
       {list.loading && !list.data && <Loading />}
