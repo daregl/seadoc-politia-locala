@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Check, CornerUpRight, MessageCircleQuestion, PenLine, X } from 'lucide-react';
 import { api } from '../api';
 import { useAuth, useUser } from '../auth';
 import { CertificateSign, signedMessage } from './CertificateSign';
@@ -49,17 +48,16 @@ export function TaskActions({ task, onDone }: { task: TaskRef; onDone: (message:
           className="btn btn-success btn-action"
           onClick={() => setDialog(task.kind === 'semnare' ? 'sign' : 'approve')}
         >
-          {task.kind === 'semnare' ? <PenLine size={17} aria-hidden="true" /> : <Check size={17} aria-hidden="true" />}
           {APPROVE_LABEL[task.kind]}
         </button>
         {fullFlow && (
-          <button type="button" className="btn btn-danger-soft btn-action" onClick={() => setDialog('reject')}><X size={17} aria-hidden="true" />Respinge</button>
+          <button type="button" className="btn btn-danger-soft btn-action" onClick={() => setDialog('reject')}>Respinge</button>
         )}
       </div>
       {task.kind !== 'completare' && (
         <div className="task-actions-more">
-          <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDialog('redirect')}><CornerUpRight size={15} aria-hidden="true" />Redirecționează</button>
-          {fullFlow && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDialog('request_info')}><MessageCircleQuestion size={15} aria-hidden="true" />Cere informații</button>}
+          <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDialog('redirect')}>Redirecționează</button>
+          {fullFlow && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDialog('request_info')}>Cere informații</button>}
         </div>
       )}
       {dialog === 'approve' && <ApproveDialog task={task} onClose={() => setDialog(null)} onDone={done} />}

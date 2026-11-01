@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CircleCheck, FileSearch, Info, ShieldCheck, Star } from 'lucide-react';
-import { TaskIcon } from '../../components/Brand';
+import { Star } from 'lucide-react';
 import { api, errorMessage, qs } from '../../api';
 import { useAuth } from '../../auth';
 import { ActionNotice, TaskActions } from '../../components/TaskActions';
@@ -97,18 +96,15 @@ function DocumentDetailPage({ id }: { id: number }) {
     <div className="doc-page">
       {registered !== undefined && (
         <div className="registered" role="status">
-          <div className="registered-main">
-            <CircleCheck size={26} aria-hidden="true" />
-            <div>
-              <p className="registered-label">Document înregistrat cu numărul</p>
-              <p className="registered-number">{registered || 'fără număr de registru'}</p>
-            </div>
+          <div>
+            <p className="registered-label">Document înregistrat cu numărul</p>
+            <p className="registered-number">{registered || 'fără număr de registru'}</p>
           </div>
           <button type="button" className="btn btn-sm" onClick={() => navigate(location.pathname, { replace: true, state: null })}>Închide</button>
         </div>
       )}
 
-      <Link to="/documente" className="back-link"><ArrowLeft size={16} aria-hidden="true" />Documente</Link>
+      <Link to="/documente" className="back-link">← Documente</Link>
 
       <header className="doc-header">
         <div className="doc-header-text">
@@ -122,7 +118,7 @@ function DocumentDetailPage({ id }: { id: number }) {
           </div>
         </div>
         <div className="doc-header-actions">
-          {canSeeAudit && <Link className="btn" to={`/audit${qs({ documentId: doc.id })}`} aria-label="Audit document" title="Audit document"><ShieldCheck size={16} aria-hidden="true" /><span className="btn-text">Audit</span></Link>}
+          {canSeeAudit && <Link className="btn" to={`/audit${qs({ documentId: doc.id })}`} aria-label="Audit document">Audit</Link>}
           <button
             type="button"
             className="btn btn-icon"
@@ -146,12 +142,9 @@ function DocumentDetailPage({ id }: { id: number }) {
           {myTasks.map((task) => (
             <section key={task.id} className="my-task" aria-label={`Sarcina mea: ${task.name}`}>
               <div className="my-task-head">
-                <div className="my-task-title">
-                  <TaskIcon kind={task.kind} tone={task.overdue ? 'danger' : 'primary'} />
-                  <div>
-                    <p className="my-task-kicker">Sarcina dumneavoastră: {TASK_KIND[task.kind] ?? task.kind}</p>
-                    <h2>{task.name}</h2>
-                  </div>
+                <div>
+                  <p className="my-task-kicker">Sarcina dumneavoastră: {TASK_KIND[task.kind] ?? task.kind}</p>
+                  <h2>{task.name}</h2>
                 </div>
                 <div className="my-task-due">
                   {task.overdue && <Badge tone="danger">Termen depășit</Badge>}
@@ -175,7 +168,6 @@ function DocumentDetailPage({ id }: { id: number }) {
         <div className="doc-col-main">
           <Section
             title={doc.versions.length > 1 ? `Document: versiunea ${version.versionNo}` : 'Document'}
-            icon={FileSearch}
             actions={<span aria-live="polite">{version.ocrStatus !== 'finalizat' && version.ocrStatus !== 'neaplicabil' && <OcrBadges version={version} />}</span>}
           >
             <DocPreview doc={doc} version={version} />
@@ -185,7 +177,7 @@ function DocumentDetailPage({ id }: { id: number }) {
           <ErpSection doc={doc} />
         </div>
         <div className="doc-col-side">
-          <Section title="Detalii" icon={Info}>
+          <Section title="Detalii">
             <DefinitionList items={[
               { label: 'Data înregistrării', value: fmtDateTime(doc.regDate) },
               { label: 'Registru', value: doc.register },

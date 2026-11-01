@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { FileText, Plus, Search, SearchX, SlidersHorizontal, Star, X } from 'lucide-react';
+import { Search, Star } from 'lucide-react';
 import { api, errorMessage } from '../api';
 import { useAuth } from '../auth';
 import { ERP_KIND_LABEL, erpRecordLabel, ErpPicker, type ErpRecord } from '../components/ErpPicker';
@@ -105,7 +105,7 @@ export default function DocumentsPage() {
     <>
       <PageHeader
         title="Documente"
-        actions={can('register') ? <Link to="/documente/nou" className="btn btn-primary phone-only"><Plus size={18} aria-hidden="true" />Înregistrează document</Link> : undefined}
+        actions={can('register') ? <Link to="/documente/nou" className="btn btn-primary phone-only">Înregistrează document</Link> : undefined}
       />
 
       <form className="search-box" onSubmit={apply} role="search">
@@ -122,13 +122,13 @@ export default function DocumentsPage() {
           </div>
           <button type="submit" className="btn btn-primary">Caută</button>
           <button type="button" className="btn" aria-expanded={showAdvanced} onClick={() => setShowAdvanced(!showAdvanced)}>
-            <SlidersHorizontal size={16} aria-hidden="true" />Filtre
-            {activeFilters > 0 && <span className="filter-count">{activeFilters}</span>}
+            Filtre
+            {activeFilters > 0 && <span className="filter-count">({activeFilters})</span>}
           </button>
           <button type="button" className="btn" aria-pressed={favorites} onClick={toggleFavorites}>
             <Star className="star-icon" size={16} aria-hidden="true" />Favorite
           </button>
-          {filtered && <button type="button" className="btn btn-ghost" onClick={clear}><X size={16} aria-hidden="true" />Șterge filtrele</button>}
+          {filtered && <button type="button" className="btn btn-ghost" onClick={clear}>Șterge filtrele</button>}
         </div>
         {showAdvanced && (
           <div className="form-grid search-advanced">
@@ -198,7 +198,7 @@ export default function DocumentsPage() {
       <ErrorAlert error={list.error} retry={() => void list.reload()} />
       {list.loading && !list.data && <Loading />}
       {list.data && list.data.items.length === 0 && (
-        <Empty icon={filtered || favorites ? SearchX : FileText} title={filtered || favorites ? 'Niciun document nu corespunde căutării.' : 'Nu există documente la care aveți acces.'}>
+        <Empty title={filtered || favorites ? 'Niciun document nu corespunde căutării.' : 'Nu există documente la care aveți acces.'}>
           {filtered && <p>Încercați alți termeni sau ștergeți filtrele.</p>}
         </Empty>
       )}
@@ -209,11 +209,12 @@ export default function DocumentsPage() {
               <caption className="visually-hidden">Lista documentelor</caption>
               <thead>
                 <tr>
-                  <th scope="col"><span className="visually-hidden">Favorit</span></th>
+                  <th scope="col">Număr</th>
                   <th scope="col">Document</th>
                   <th scope="col">Tip</th>
                   <th scope="col">Stare</th>
                   <th scope="col">Termen</th>
+                  <th scope="col"><span className="visually-hidden">Favorit</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -221,22 +222,15 @@ export default function DocumentsPage() {
                   <tr key={doc.id} onClick={(e) => {
                     if (!(e.target as HTMLElement).closest('a,button') && !window.getSelection()?.toString()) navigate(`/documente/${doc.id}`);
                   }} className="row-clickable">
-                    <td className="cell-fav">
-                      <button
-                        type="button"
-                        className="fav-btn"
-                        aria-pressed={doc.favorite}
-                        aria-label={doc.favorite ? `Elimină de la favorite: ${doc.title}` : `Adaugă la favorite: ${doc.title}`}
-                        onClick={() => void toggleFavorite(doc)}
-                      >
-                        <Star size={18} aria-hidden="true" />
-                      </button>
+                    <td data-label="Număr" className="cell-nowrap cell-phone-number">
+                      <span className="reg-no">{doc.regLabel ?? '–'}</span>
+                      <div className="doc-sub">{fmtDate(doc.regDate ?? doc.createdAt)}</div>
                     </td>
                     <td data-label="Document" className="cell-grow">
                       <Link to={`/documente/${doc.id}`} className="doc-title-link">{doc.title}</Link>
                       {doc.personalData && <> <Badge tone="warning">Date personale</Badge></>}
                       <div className="doc-sub">
-                        {[doc.regLabel ?? 'Fără număr', fmtDate(doc.regDate ?? doc.createdAt), doc.direction ? DIRECTION_LABELS[doc.direction] : null, doc.issuer].filter(Boolean).join(' · ')}
+                        {[doc.direction ? DIRECTION_LABELS[doc.direction] : null, doc.issuer].filter(Boolean).join(' · ')}
                       </div>
                       <Snippet text={doc.snippet} />
                     </td>
@@ -246,6 +240,17 @@ export default function DocumentsPage() {
                     </td>
                     <td data-label="Stare" className="cell-phone-plain"><StatusBadge status={doc.status} /></td>
                     <td data-label="Termen" className={`cell-nowrap ${doc.dueDate ? '' : 'cell-phone-hide'}`}>{doc.dueDate ? fmtDate(doc.dueDate) : ''}</td>
+                    <td className="cell-fav">
+                      <button
+                        type="button"
+                        className="fav-btn"
+                        aria-pressed={doc.favorite}
+                        aria-label={doc.favorite ? `Elimină de la favorite: ${doc.title}` : `Adaugă la favorite: ${doc.title}`}
+                        onClick={() => void toggleFavorite(doc)}
+                      >
+                        <Star size={17} aria-hidden="true" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -1,24 +1,17 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import {
-  ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Info, Inbox, TriangleAlert, X, type LucideIcon,
-} from 'lucide-react';
+import { ChevronRight, X } from 'lucide-react';
 import { errorMessage } from '../api';
 import { DOC_STATUS, type Tone } from '../labels';
 import { plural } from '../format';
 import type { DocStatus } from '../types';
 
 type AlertKind = 'info' | 'success' | 'warning' | 'error';
-const ALERT_ICONS: Record<AlertKind, LucideIcon> = { info: Info, success: CircleCheck, warning: TriangleAlert, error: CircleAlert };
 
 export function Alert({ kind = 'info', title, children }: { kind?: AlertKind; title?: string; children?: ReactNode }) {
-  const Icon = ALERT_ICONS[kind];
   return (
     <div className={`alert alert-${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
-      <Icon className="alert-icon" size={18} aria-hidden="true" />
-      <div className="alert-content">
-        {title && <p className="alert-title">{title}</p>}
-        {children && <div>{children}</div>}
-      </div>
+      {title && <p className="alert-title">{title}</p>}
+      {children && <div>{children}</div>}
     </div>
   );
 }
@@ -39,10 +32,9 @@ export function Loading({ label = 'Se încarcă…' }: { label?: string }) {
   return <p className="loading" role="status"><span className="spinner" aria-hidden="true" />{label}</p>;
 }
 
-export function Empty({ title, icon: Icon = Inbox, children }: { title: string; icon?: LucideIcon; children?: ReactNode }) {
+export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="empty">
-      <span className="empty-icon" aria-hidden="true"><Icon size={22} /></span>
       <p className="empty-title">{title}</p>
       {children && <div>{children}</div>}
     </div>
@@ -55,7 +47,7 @@ export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: R
 
 export function StatusBadge({ status }: { status: DocStatus }) {
   const info = DOC_STATUS[status] ?? { label: status, tone: 'neutral' as Tone };
-  return <span className={`badge badge-${info.tone} badge-dot`}>{info.label}</span>;
+  return <span className={`stamp stamp-${info.tone}`}>{info.label}</span>;
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
@@ -74,15 +66,14 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
  * Panou cu titlu. Cu `collapsible`, conținutul se poate restrânge; formularele din el își păstrează
  * valorile, iar `defaultOpen` deschide panoul și când datele sosesc după prima afișare.
  */
-export function Section({ title, icon: Icon, count, actions, children, id, collapsible, defaultOpen = true }: {
-  title: string; icon?: LucideIcon; count?: number; actions?: ReactNode; children: ReactNode; id?: string;
+export function Section({ title, count, actions, children, id, collapsible, defaultOpen = true }: {
+  title: string; count?: number; actions?: ReactNode; children: ReactNode; id?: string;
   collapsible?: boolean; defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   useEffect(() => { if (defaultOpen) setOpen(true); }, [defaultOpen]);
   const heading = (
     <h2 className="panel-title">
-      {Icon && <Icon size={17} aria-hidden="true" />}
       {title}
       {count !== undefined && count > 0 && <span className="panel-count">{count}</span>}
     </h2>
@@ -142,8 +133,8 @@ export function Pagination({ total, limit, offset, onChange }: { total: number; 
       <span className="pagination-info">{plural(total, 'rezultat', 'rezultate')}{pages > 1 ? ` · pagina ${page} din ${pages}` : ''}</span>
       {pages > 1 && (
         <span className="pagination-buttons">
-          <button type="button" className="btn" disabled={offset <= 0} onClick={() => onChange(Math.max(0, offset - limit))}><ChevronLeft size={16} aria-hidden="true" />Înapoi</button>
-          <button type="button" className="btn" disabled={offset + limit >= total} onClick={() => onChange(offset + limit)}>Înainte<ChevronRight size={16} aria-hidden="true" /></button>
+          <button type="button" className="btn" disabled={offset <= 0} onClick={() => onChange(Math.max(0, offset - limit))}>Înapoi</button>
+          <button type="button" className="btn" disabled={offset + limit >= total} onClick={() => onChange(offset + limit)}>Înainte</button>
         </span>
       )}
     </nav>

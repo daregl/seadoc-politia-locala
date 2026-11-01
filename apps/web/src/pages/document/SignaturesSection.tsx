@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { PenLine } from 'lucide-react';
 import { api } from '../../api';
 import { useAuth } from '../../auth';
 import { CertificateSign, signedMessage } from '../../components/CertificateSign';
@@ -45,7 +44,6 @@ export function SignaturesSection({ doc, onSigned }: { doc: DocDetail; onSigned?
   return (
     <Section
       title="Semnături"
-      icon={PenLine}
       count={doc.signatures.length}
       collapsible
       defaultOpen={doc.signatures.length > 0}

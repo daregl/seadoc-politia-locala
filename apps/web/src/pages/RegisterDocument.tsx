@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowDownLeft, ArrowUpRight, Repeat, type LucideIcon } from 'lucide-react';
 import { api } from '../api';
 import { useUser } from '../auth';
 import { DocPicker, type PickedDoc } from '../components/DocPicker';
@@ -13,8 +12,6 @@ import { fmtSize, senderLabel } from '../format';
 import { indentedDepartments, indentedFolders } from '../tree';
 import type { Direction, Meta, TypeField } from '../types';
 import type { InboxMessage } from './EmailMessage';
-
-const DIRECTION_ICONS: Record<Direction, LucideIcon> = { intrat: ArrowDownLeft, iesit: ArrowUpRight, intern: Repeat };
 
 export default function RegisterDocumentPage() {
   usePageTitle('Înregistrare document');
@@ -144,16 +141,12 @@ export default function RegisterDocumentPage() {
               <fieldset className="fieldset fieldset-plain form-grid-full">
                 <legend>Direcție</legend>
                 <div className="radio-row">
-                  {(Object.keys(DIRECTION_LABELS) as Direction[]).map((d) => {
-                    const Icon = DIRECTION_ICONS[d];
-                    return (
-                      <label key={d} className="radio-pill radio-pill-icon">
-                        <input type="radio" name="direction" value={d} checked={direction === d} onChange={() => setDirection(d)} />
-                        <Icon size={16} aria-hidden="true" />
-                        <span>{DIRECTION_LABELS[d]}</span>
-                      </label>
-                    );
-                  })}
+                  {(Object.keys(DIRECTION_LABELS) as Direction[]).map((d) => (
+                    <label key={d} className="radio-pill">
+                      <input type="radio" name="direction" value={d} checked={direction === d} onChange={() => setDirection(d)} />
+                      <span>{DIRECTION_LABELS[d]}</span>
+                    </label>
+                  ))}
                 </div>
               </fieldset>
               <Field label="Titlu" required className="form-grid-full">

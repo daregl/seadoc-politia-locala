@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Plus, Workflow } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { Empty, ErrorAlert, Loading, PageHeader } from '../components/Ui';
@@ -15,11 +14,11 @@ export default function WorkflowsPage() {
     <>
       <PageHeader
         title="Fluxuri"
-        actions={can('workflow_edit') ? <Link to="/fluxuri/nou" className="btn btn-primary"><Plus size={17} aria-hidden="true" />Flux nou</Link> : undefined}
+        actions={can('workflow_edit') ? <Link to="/fluxuri/nou" className="btn btn-primary">Flux nou</Link> : undefined}
       />
       <ErrorAlert error={error} retry={() => void reload()} />
       {loading && !data && <Loading />}
-      {data && data.length === 0 && <Empty icon={Workflow} title="Nu există fluxuri publicate." />}
+      {data && data.length === 0 && <Empty title="Nu există fluxuri publicate." />}
       {data && data.length > 0 && (
         <div className="table-cards-wrap">
           <table className="table table-cards">

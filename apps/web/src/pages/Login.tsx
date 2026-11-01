@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import { Logo } from '../components/Brand';
+import { Wordmark } from '../components/Brand';
 import { api, errorMessage } from '../api';
 import { useAuth } from '../auth';
 import { Alert, ErrorAlert, Field, Loading } from '../components/Ui';
@@ -20,19 +20,23 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-brand">
-        <Logo size={36} />
-        <p className="auth-logo">SeaDoc</p>
-      </div>
-      <main className="auth-card">
+      <aside className="auth-brand">
+        <div>
+          <Wordmark />
+          <p className="auth-lead">Registratură, fluxuri de lucru și arhivă</p>
+        </div>
+        <p className="auth-vendor">Seamore Systems</p>
+      </aside>
+      <main className="auth-main">
+        <div className="auth-card">
           {status === 'loading' && <Loading label="Se verifică sesiunea…" />}
           {status === 'unavailable' && <Unavailable />}
           {status === 'anon' && <PasswordStep notice={notice} />}
           {status === 'mfa' && <TotpStep />}
           {status === 'mfa_enrol' && <EnrolStep />}
           {status === 'change_password' && <ChangePasswordStep />}
+        </div>
       </main>
-      <p className="auth-vendor">Seamore Systems</p>
     </div>
   );
 }

@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Archive, ChartColumn, Database, FileText, House, Inbox, ListChecks, Lock, LogOut, Menu, Plus,
-  Search, Settings, ShieldCheck, Workflow, X, type LucideIcon,
+  Archive, ChartColumn, ChevronDown, Database, FileText, House, Inbox, ListChecks, Lock, Menu,
+  Search, Settings, ShieldCheck, UserRound, Workflow, X, type LucideIcon,
 } from 'lucide-react';
 import { api, qs } from '../api';
 import { useAuth, useUser } from '../auth';
 import { useAsync, useInterval } from '../hooks';
 import { roleLabel } from '../labels';
 import type { Permission, Task } from '../types';
-import { Logo } from './Brand';
+import { Wordmark } from './Brand';
 import { ErrorBoundary } from './ErrorBoundary';
 import { NotificationsBell } from './NotificationsBell';
 import { TASKS_CHANGED } from './TaskActions';
@@ -44,8 +44,6 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
-
-const initials = (name: string): string => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toLocaleUpperCase('ro');
 
 function CountPill({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -98,13 +96,15 @@ function UserMenu() {
       <button
         ref={buttonRef}
         type="button"
-        className="avatar-btn"
+        className="user-btn"
         aria-label={`Contul meu: ${user.fullName}`}
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen(!open)}
       >
-        <span className="avatar" aria-hidden="true">{initials(user.fullName)}</span>
+        <UserRound className="phone-only" size={20} aria-hidden="true" />
+        <span className="user-btn-name">{user.fullName}</span>
+        <ChevronDown className="user-btn-name" size={15} aria-hidden="true" />
       </button>
       {open && (
         <div className="user-panel">
@@ -112,9 +112,7 @@ function UserMenu() {
             <strong>{user.fullName}</strong>
             <span className="muted">{roleLabel(user.role)}{user.departmentName ? ` · ${user.departmentName}` : ''}</span>
           </div>
-          <button type="button" className="user-panel-action" onClick={() => void logout()}>
-            <LogOut size={16} aria-hidden="true" />Ieșire
-          </button>
+          <button type="button" className="user-panel-action" onClick={() => void logout()}>Ieșire</button>
         </div>
       )}
     </div>
@@ -152,11 +150,11 @@ export function Layout() {
       {menuOpen && <button type="button" className="sidebar-backdrop" aria-label="Închide meniul" onClick={() => setMenuOpen(false)} />}
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-brand">
-          <Link to="/panou" className="brand"><Logo /><span className="brand-name">SeaDoc</span></Link>
+          <Link to="/panou" className="brand"><Wordmark /></Link>
           <button type="button" className="icon-btn sidebar-close" aria-label="Închide meniul" onClick={() => setMenuOpen(false)}><X size={20} aria-hidden="true" /></button>
         </div>
         {can('register') && (
-          <Link to="/documente/nou" className="btn btn-primary btn-block sidebar-cta"><Plus size={18} aria-hidden="true" />Înregistrează document</Link>
+          <Link to="/documente/nou" className="btn sidebar-cta">Înregistrează document</Link>
         )}
         <nav id="navigatie" className="app-nav" aria-label="Navigare principală">
           {groups.map((group) => (
@@ -166,7 +164,7 @@ export function Layout() {
                 {group.items.map((item) => (
                   <li key={item.to}>
                     <NavLink to={item.to} className={({ isActive }) => (isActive && location.pathname !== '/documente/nou' ? 'active' : '')}>
-                      <item.icon size={18} aria-hidden="true" />
+                      <item.icon size={16} aria-hidden="true" />
                       <span className="nav-label">{item.label}</span>
                       {item.to === '/sarcini' && <CountPill count={taskCount} />}
                     </NavLink>
@@ -180,7 +178,7 @@ export function Layout() {
 
       <div className="app-content">
         <header className="topbar">
-          <Link to="/panou" className="brand topbar-brand"><Logo size={28} /><span className="brand-name">SeaDoc</span></Link>
+          <Link to="/panou" className="brand topbar-brand"><Wordmark /></Link>
           {location.pathname !== '/documente' && <GlobalSearch />}
           <div className="topbar-right">
             <NotificationsBell />

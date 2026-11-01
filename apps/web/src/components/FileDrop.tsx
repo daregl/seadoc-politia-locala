@@ -1,5 +1,4 @@
 import { useId, useRef, useState } from 'react';
-import { FileText, UploadCloud, X } from 'lucide-react';
 import { fmtSize } from '../format';
 
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.tif,.tiff,.txt,.docx,.xlsx,.pptx,.doc,.xls,.ppt';
@@ -39,18 +38,16 @@ export function FileDrop({ file, onChange, label = 'Fișier', required }: {
       </label>
       {file && (
         <div className="dropzone-picked">
-          <span className="icon-chip" aria-hidden="true"><FileText size={18} /></span>
           <p className="dropzone-file"><strong>{file.name}</strong> <span className="muted">{fmtSize(file.size)}</span></p>
           <button
             type="button"
-            className="icon-btn"
-            aria-label="Elimină fișierul"
+            className="btn btn-sm"
             onClick={() => {
               accept(null);
               if (inputRef.current) inputRef.current.value = '';
             }}
           >
-            <X size={18} aria-hidden="true" />
+            Elimină fișierul
           </button>
         </div>
       )}
@@ -66,7 +63,6 @@ export function FileDrop({ file, onChange, label = 'Fișier', required }: {
           accept(e.dataTransfer.files[0] ?? null);
         }}
       >
-        <UploadCloud className="dropzone-icon" size={28} aria-hidden="true" />
         <span className="dropzone-text">Trageți fișierul aici sau <span className="dropzone-choose">alegeți-l</span></span>
         <span className="hint">PDF, imagini, TXT sau Office, cel mult 50 MB</span>
         <input

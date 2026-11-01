@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Database, Plus } from 'lucide-react';
 import { api } from '../../api';
 import { ERP_KIND_LABEL, erpRecordLabel, ErpPicker, type ErpRecord } from '../../components/ErpPicker';
 import { Alert, Empty, ErrorAlert, Loading, Section } from '../../components/Ui';
@@ -35,12 +34,11 @@ export function ErpSection({ doc }: { doc: DocDetail }) {
   return (
     <Section
       title="Date ERP (import)"
-      icon={Database}
       count={links.data?.length ?? 0}
       collapsible
       defaultOpen={!!links.data?.length || adding || failedAtCreate > 0}
       actions={doc.canEdit ? (
-        <button type="button" className="btn btn-sm" aria-expanded={adding} onClick={() => setAdding(!adding)}><Plus size={15} aria-hidden="true" />Adaugă</button>
+        <button type="button" className="btn btn-sm" aria-expanded={adding} onClick={() => setAdding(!adding)}>Adaugă</button>
       ) : undefined}
     >
       {failedAtCreate > 0 && <Alert kind="warning">Documentul s-a înregistrat, dar {failedAtCreate === 1 ? 'o legătură ERP nu s-a putut salva' : `${failedAtCreate} legături ERP nu s-au putut salva`}. Adăugați-le din nou.</Alert>}
