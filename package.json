@@ -1,0 +1,15 @@
+{
+  "name": "seadoc",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SeaDoc - management electronic al documentelor (CTP Iasi)",
+  "workspaces": ["apps/api", "apps/web", "apps/agent"],
+  "scripts": {
+    "db:start": "bash scripts/db.sh start",
+    "db:stop": "bash scripts/db.sh stop",
+    "build": "npm run build -w apps/api && npm run build -w apps/web",
+    "seed": "npm run seed -w apps/api",
+    "start": "npm run start -w apps/api",
+    "test": "npm run test -w apps/api"
+  }
+}

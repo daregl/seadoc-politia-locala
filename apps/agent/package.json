@@ -1,0 +1,13 @@
+{
+  "name": "@seadoc/agent",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Agent local SeaDoc: semnează amprente cu certificatul de pe calculatorul utilizatorului",
+  "type": "module",
+  "bin": { "seadoc-agent": "src/cli.js" },
+  "scripts": { "start": "node src/cli.js start" },
+  "engines": { "node": ">=20" },
+  "dependencies": { "node-forge": "^1.4.0" },
+  "peerDependencies": { "pkcs11js": "^2.1.0" },
+  "peerDependenciesMeta": { "pkcs11js": { "optional": true } }
+}
