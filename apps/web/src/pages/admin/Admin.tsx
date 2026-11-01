@@ -19,7 +19,7 @@ export default function AdminPage() {
   usePageTitle('Administrare');
   return (
     <>
-      <PageHeader title="Administrare" subtitle="Fiecare modificare se înregistrează în jurnalul de audit." />
+      <PageHeader title="Administrare" />
       <nav className="tabs" aria-label="Secțiuni administrare">
         {TABS.map((tab) => (
           <NavLink key={tab.to} to={tab.to} className={({ isActive }) => (isActive ? 'tab tab-active' : 'tab')}>{tab.label}</NavLink>

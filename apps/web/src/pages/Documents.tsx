@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { FileText, Plus, Search, SearchX, SlidersHorizontal, Star, X } from 'lucide-react';
 import { api, errorMessage } from '../api';
 import { useAuth } from '../auth';
 import { ERP_KIND_LABEL, erpRecordLabel, ErpPicker, type ErpRecord } from '../components/ErpPicker';
@@ -98,30 +99,36 @@ export default function DocumentsPage() {
   };
 
   const favorites = !!params.get('favorites');
+  const activeFilters = [...params.keys()].filter((key) => ADVANCED.includes(key) || key.startsWith('meta.')).length;
   const filtered = query.replace(/(^|&)(favorites|offset)=[^&]*/g, '') !== '';
   return (
     <>
       <PageHeader
         title="Documente"
-        subtitle="Căutarea acoperă titlul, numărul, emitentul, metadatele și textul extras din fișiere."
-        actions={can('register') ? <Link to="/documente/nou" className="btn btn-primary">Înregistrează document</Link> : undefined}
+        actions={can('register') ? <Link to="/documente/nou" className="btn btn-primary phone-only"><Plus size={18} aria-hidden="true" />Înregistrează document</Link> : undefined}
       />
 
       <form className="search-box" onSubmit={apply} role="search">
         <div className="search-row">
-          <Field label="Căutare" className="search-main">
-            <input type="search" value={form.q ?? ''} onChange={(e) => set('q', e.target.value)} placeholder="Cuvinte din document sau număr de înregistrare" />
-          </Field>
+          <div className="search-main">
+            <Search size={18} aria-hidden="true" />
+            <input
+              type="search"
+              value={form.q ?? ''}
+              onChange={(e) => set('q', e.target.value)}
+              placeholder="Titlu, număr sau text"
+              aria-label="Căutare în documente"
+            />
+          </div>
           <button type="submit" className="btn btn-primary">Caută</button>
-        </div>
-        <div className="search-options">
-          <button type="button" className="btn btn-sm" aria-expanded={showAdvanced} onClick={() => setShowAdvanced(!showAdvanced)}>
-            Căutare avansată
+          <button type="button" className="btn" aria-expanded={showAdvanced} onClick={() => setShowAdvanced(!showAdvanced)}>
+            <SlidersHorizontal size={16} aria-hidden="true" />Filtre
+            {activeFilters > 0 && <span className="filter-count">{activeFilters}</span>}
           </button>
-          <button type="button" className="btn btn-sm" aria-pressed={favorites} onClick={toggleFavorites}>
-            <span aria-hidden="true">{favorites ? '★ ' : '☆ '}</span>Doar favorite
+          <button type="button" className="btn" aria-pressed={favorites} onClick={toggleFavorites}>
+            <Star className="star-icon" size={16} aria-hidden="true" />Favorite
           </button>
-          {filtered && <button type="button" className="btn btn-sm btn-link" onClick={clear}>Șterge filtrele</button>}
+          {filtered && <button type="button" className="btn btn-ghost" onClick={clear}><X size={16} aria-hidden="true" />Șterge filtrele</button>}
         </div>
         {showAdvanced && (
           <div className="form-grid search-advanced">
@@ -191,7 +198,7 @@ export default function DocumentsPage() {
       <ErrorAlert error={list.error} retry={() => void list.reload()} />
       {list.loading && !list.data && <Loading />}
       {list.data && list.data.items.length === 0 && (
-        <Empty title={filtered || favorites ? 'Niciun document nu corespunde filtrelor.' : 'Nu există documente la care aveți acces.'}>
+        <Empty icon={filtered || favorites ? SearchX : FileText} title={filtered || favorites ? 'Niciun document nu corespunde căutării.' : 'Nu există documente la care aveți acces.'}>
           {filtered && <p>Încercați alți termeni sau ștergeți filtrele.</p>}
         </Empty>
       )}
@@ -203,10 +210,8 @@ export default function DocumentsPage() {
               <thead>
                 <tr>
                   <th scope="col"><span className="visually-hidden">Favorit</span></th>
-                  <th scope="col">Număr</th>
                   <th scope="col">Document</th>
                   <th scope="col">Tip</th>
-                  <th scope="col">Departament</th>
                   <th scope="col">Stare</th>
                   <th scope="col">Termen</th>
                 </tr>
@@ -224,27 +229,23 @@ export default function DocumentsPage() {
                         aria-label={doc.favorite ? `Elimină de la favorite: ${doc.title}` : `Adaugă la favorite: ${doc.title}`}
                         onClick={() => void toggleFavorite(doc)}
                       >
-                        <span aria-hidden="true">{doc.favorite ? '★' : '☆'}</span>
+                        <Star size={18} aria-hidden="true" />
                       </button>
-                    </td>
-                    <td data-label="Număr" className="cell-nowrap">
-                      {doc.regLabel ?? <span className="muted">fără număr</span>}
-                      <div className="muted cell-small">{fmtDate(doc.regDate ?? doc.createdAt)}</div>
                     </td>
                     <td data-label="Document" className="cell-grow">
                       <Link to={`/documente/${doc.id}`} className="doc-title-link">{doc.title}</Link>
                       {doc.personalData && <> <Badge tone="warning">Date personale</Badge></>}
-                      <div className="muted cell-small">
-                        {doc.direction ? DIRECTION_LABELS[doc.direction] : ''}
-                        {doc.issuer ? ` · ${doc.issuer}` : ''}
-                        {doc.folderName ? ` · Dosar: ${doc.folderName}` : ''}
+                      <div className="doc-sub">
+                        {[doc.regLabel ?? 'Fără număr', fmtDate(doc.regDate ?? doc.createdAt), doc.direction ? DIRECTION_LABELS[doc.direction] : null, doc.issuer].filter(Boolean).join(' · ')}
                       </div>
                       <Snippet text={doc.snippet} />
                     </td>
-                    <td data-label="Tip">{doc.typeName}</td>
-                    <td data-label="Departament">{doc.departmentName}</td>
-                    <td data-label="Stare"><StatusBadge status={doc.status} /></td>
-                    <td data-label="Termen" className="cell-nowrap">{fmtDate(doc.dueDate)}</td>
+                    <td data-label="Tip" className="cell-phone-inline">
+                      {doc.typeName}
+                      <div className="doc-sub">{doc.departmentName}</div>
+                    </td>
+                    <td data-label="Stare" className="cell-phone-plain"><StatusBadge status={doc.status} /></td>
+                    <td data-label="Termen" className={`cell-nowrap ${doc.dueDate ? '' : 'cell-phone-hide'}`}>{doc.dueDate ? fmtDate(doc.dueDate) : ''}</td>
                   </tr>
                 ))}
               </tbody>

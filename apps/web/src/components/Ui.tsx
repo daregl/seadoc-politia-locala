@@ -1,14 +1,24 @@
-import { useId, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Info, Inbox, TriangleAlert, X, type LucideIcon,
+} from 'lucide-react';
 import { errorMessage } from '../api';
 import { DOC_STATUS, type Tone } from '../labels';
 import { plural } from '../format';
 import type { DocStatus } from '../types';
 
-export function Alert({ kind = 'info', title, children }: { kind?: 'info' | 'success' | 'warning' | 'error'; title?: string; children?: ReactNode }) {
+type AlertKind = 'info' | 'success' | 'warning' | 'error';
+const ALERT_ICONS: Record<AlertKind, LucideIcon> = { info: Info, success: CircleCheck, warning: TriangleAlert, error: CircleAlert };
+
+export function Alert({ kind = 'info', title, children }: { kind?: AlertKind; title?: string; children?: ReactNode }) {
+  const Icon = ALERT_ICONS[kind];
   return (
     <div className={`alert alert-${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
-      {title && <p className="alert-title">{title}</p>}
-      {children && <div>{children}</div>}
+      <Icon className="alert-icon" size={18} aria-hidden="true" />
+      <div className="alert-content">
+        {title && <p className="alert-title">{title}</p>}
+        {children && <div>{children}</div>}
+      </div>
     </div>
   );
 }
@@ -29,9 +39,10 @@ export function Loading({ label = 'Se încarcă…' }: { label?: string }) {
   return <p className="loading" role="status"><span className="spinner" aria-hidden="true" />{label}</p>;
 }
 
-export function Empty({ title, children }: { title: string; children?: ReactNode }) {
+export function Empty({ title, icon: Icon = Inbox, children }: { title: string; icon?: LucideIcon; children?: ReactNode }) {
   return (
     <div className="empty">
+      <span className="empty-icon" aria-hidden="true"><Icon size={22} /></span>
       <p className="empty-title">{title}</p>
       {children && <div>{children}</div>}
     </div>
@@ -44,7 +55,7 @@ export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: R
 
 export function StatusBadge({ status }: { status: DocStatus }) {
   const info = DOC_STATUS[status] ?? { label: status, tone: 'neutral' as Tone };
-  return <Badge tone={info.tone}>{info.label}</Badge>;
+  return <span className={`badge badge-${info.tone} badge-dot`}>{info.label}</span>;
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
@@ -59,15 +70,45 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   );
 }
 
-export function Section({ title, actions, children, id }: { title: string; actions?: ReactNode; children: ReactNode; id?: string }) {
+/**
+ * Panou cu titlu. Cu `collapsible`, conținutul se poate restrânge; formularele din el își păstrează
+ * valorile, iar `defaultOpen` deschide panoul și când datele sosesc după prima afișare.
+ */
+export function Section({ title, icon: Icon, count, actions, children, id, collapsible, defaultOpen = true }: {
+  title: string; icon?: LucideIcon; count?: number; actions?: ReactNode; children: ReactNode; id?: string;
+  collapsible?: boolean; defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  useEffect(() => { if (defaultOpen) setOpen(true); }, [defaultOpen]);
+  const heading = (
+    <h2 className="panel-title">
+      {Icon && <Icon size={17} aria-hidden="true" />}
+      {title}
+      {count !== undefined && count > 0 && <span className="panel-count">{count}</span>}
+    </h2>
+  );
+  if (!collapsible) {
+    return (
+      <section className="panel" id={id}>
+        <div className="panel-head">
+          {heading}
+          {actions && <div className="panel-actions">{actions}</div>}
+        </div>
+        <div className="panel-body">{children}</div>
+      </section>
+    );
+  }
   return (
-    <section className="panel" id={id}>
-      <div className="panel-head">
-        <h2>{title}</h2>
+    <details className="panel panel-collapsible" id={id} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary className="panel-head">
+        <span className="panel-summary">
+          <ChevronRight className="panel-chevron" size={17} aria-hidden="true" />
+          {heading}
+        </span>
         {actions && <div className="panel-actions">{actions}</div>}
-      </div>
+      </summary>
       <div className="panel-body">{children}</div>
-    </section>
+    </details>
   );
 }
 
@@ -98,11 +139,13 @@ export function Pagination({ total, limit, offset, onChange }: { total: number; 
   const pages = Math.max(1, Math.ceil(total / limit));
   return (
     <nav className="pagination" aria-label="Paginare">
-      <span className="pagination-info">{plural(total, 'rezultat', 'rezultate')} · pagina {page} din {pages}</span>
-      <span className="pagination-buttons">
-        <button type="button" className="btn" disabled={offset <= 0} onClick={() => onChange(Math.max(0, offset - limit))}>Înapoi</button>
-        <button type="button" className="btn" disabled={offset + limit >= total} onClick={() => onChange(offset + limit)}>Înainte</button>
-      </span>
+      <span className="pagination-info">{plural(total, 'rezultat', 'rezultate')}{pages > 1 ? ` · pagina ${page} din ${pages}` : ''}</span>
+      {pages > 1 && (
+        <span className="pagination-buttons">
+          <button type="button" className="btn" disabled={offset <= 0} onClick={() => onChange(Math.max(0, offset - limit))}><ChevronLeft size={16} aria-hidden="true" />Înapoi</button>
+          <button type="button" className="btn" disabled={offset + limit >= total} onClick={() => onChange(offset + limit)}>Înainte<ChevronRight size={16} aria-hidden="true" /></button>
+        </span>
+      )}
     </nav>
   );
 }
@@ -127,9 +170,7 @@ export function Modal({ title, onClose, children, footer, wide }: {
     >
       <div className="modal-head">
         <h2 id={titleId}>{title}</h2>
-        <button type="button" className="btn btn-ghost btn-icon" aria-label="Închide" onClick={onClose}>
-          <span aria-hidden="true">×</span>
-        </button>
+        <button type="button" className="icon-btn" aria-label="Închide" onClick={onClose}><X size={20} aria-hidden="true" /></button>
       </div>
       <div className="modal-body">{children}</div>
       {footer && <div className="modal-foot">{footer}</div>}
@@ -137,13 +178,15 @@ export function Modal({ title, onClose, children, footer, wide }: {
   );
 }
 
+/** Listă de date. Rândurile fără valoare nu se afișează. */
 export function DefinitionList({ items }: { items: { label: string; value: ReactNode }[] }) {
+  const visible = items.filter((item) => item.value !== null && item.value !== undefined && item.value !== '' && item.value !== '–');
   return (
     <dl className="deflist">
-      {items.map((item) => (
+      {visible.map((item) => (
         <div key={item.label}>
           <dt>{item.label}</dt>
-          <dd>{item.value === null || item.value === undefined || item.value === '' ? '–' : item.value}</dd>
+          <dd>{item.value}</dd>
         </div>
       ))}
     </dl>

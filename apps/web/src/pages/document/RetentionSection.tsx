@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Archive } from 'lucide-react';
 import { api } from '../../api';
 import { DefinitionList, ErrorAlert, Modal, Section } from '../../components/Ui';
 import { fmtDate, plural } from '../../format';
@@ -28,8 +29,11 @@ export function RetentionSection({ doc, onArchived }: { doc: DocDetail; onArchiv
   return (
     <Section
       title="Arhivare și păstrare"
+      icon={Archive}
+      collapsible
+      defaultOpen={doc.canArchive || !!doc.archivedAt}
       actions={doc.canArchive
-        ? <button type="button" className="btn btn-sm" onClick={() => setConfirm(true)}>Închide și arhivează</button>
+        ? <button type="button" className="btn btn-sm" onClick={() => setConfirm(true)}>Arhivează</button>
         : undefined}
     >
       <DefinitionList items={[

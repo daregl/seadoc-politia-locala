@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { CalendarClock, CircleCheck, History, Workflow } from 'lucide-react';
 import { api, qs } from '../api';
+import { TaskIcon } from '../components/Brand';
 import { ActionNotice, TaskActions } from '../components/TaskActions';
 import { Badge, Empty, ErrorAlert, Loading, PageHeader } from '../components/Ui';
 import { fmtDateTime } from '../format';
@@ -22,7 +24,7 @@ export default function TasksPage() {
 
   return (
     <>
-      <PageHeader title="Sarcinile mele" subtitle="Sarcini de avizare, aprobare, semnare și informare primite prin fluxuri." />
+      <PageHeader title="Sarcinile mele" />
       <div className="tabs" role="group" aria-label="Filtrare sarcini">
         <button type="button" className={scope === 'open' ? 'tab tab-active' : 'tab'} aria-pressed={scope === 'open'} onClick={() => select('open')}>Deschise</button>
         <button type="button" className={scope === 'done' ? 'tab tab-active' : 'tab'} aria-pressed={scope === 'done'} onClick={() => select('done')}>Finalizate</button>
@@ -31,36 +33,41 @@ export default function TasksPage() {
       <ErrorAlert error={tasks.error} retry={() => void tasks.reload()} />
       {tasks.loading && !tasks.data && <Loading />}
       {tasks.data && tasks.data.length === 0 && (
-        <Empty title={scope === 'open' ? 'Nu aveți sarcini deschise.' : 'Nu aveți sarcini finalizate.'} />
+        <Empty
+          icon={scope === 'open' ? CircleCheck : History}
+          title={scope === 'open' ? 'Nu aveți sarcini deschise.' : 'Nu aveți sarcini finalizate.'}
+        />
       )}
       {tasks.data && tasks.data.length > 0 && (
         <ul className="task-list">
           {tasks.data.map((task) => (
             <li key={task.id} className={`task-card ${task.overdue && scope === 'open' ? 'task-card-overdue' : ''}`}>
               <div className="task-card-main">
-                <div className="task-card-badges">
-                  <Badge tone="info">{TASK_KIND[task.kind] ?? task.kind}</Badge>
-                  {(scope === 'done' || task.status !== 'deschisa') && (
-                    <Badge tone={TASK_STATUS[task.status]?.tone ?? 'neutral'}>{TASK_STATUS[task.status]?.label ?? task.status}</Badge>
-                  )}
-                  {task.overdue && scope === 'open' && <Badge tone="danger">Termen depășit</Badge>}
-                </div>
-                <h2 className="task-card-title">{task.name}</h2>
-                <p className="task-card-doc">
-                  <Link to={`/documente/${task.documentId}`}>
-                    {task.regLabel ? <strong>{task.regLabel}</strong> : 'Fără număr'} · {task.documentTitle}
-                  </Link>
-                </p>
-                <p className="task-card-meta">
-                  <span>Flux: {task.workflowName}</span>
-                  <span>Primită: {fmtDateTime(task.createdAt)}</span>
-                  <span>Termen: {fmtDateTime(task.dueAt, 'fără termen')}</span>
-                </p>
-                {task.comment && (
-                  <p className="task-card-comment">
-                    <strong>{task.kind === 'completare' ? 'Informații cerute: ' : 'Comentariu: '}</strong>{task.comment}
+                <TaskIcon kind={task.kind} tone={task.overdue && scope === 'open' ? 'danger' : 'primary'} />
+                <div className="task-card-body">
+                  <h2 className="task-card-title">{task.name}</h2>
+                  <p className="task-card-doc">
+                    <Link to={`/documente/${task.documentId}`}>
+                      {task.regLabel ?? 'Fără număr'} · {task.documentTitle}
+                    </Link>
                   </p>
-                )}
+                  <p className="task-card-meta">
+                    <span>{TASK_KIND[task.kind] ?? task.kind}</span>
+                    <span><Workflow size={14} aria-hidden="true" />{task.workflowName}</span>
+                    {task.dueAt && <span><CalendarClock size={14} aria-hidden="true" />Termen: {fmtDateTime(task.dueAt)}</span>}
+                  </p>
+                  <div className="task-card-badges">
+                    {(scope === 'done' || task.status !== 'deschisa') && (
+                      <Badge tone={TASK_STATUS[task.status]?.tone ?? 'neutral'}>{TASK_STATUS[task.status]?.label ?? task.status}</Badge>
+                    )}
+                    {task.overdue && scope === 'open' && <Badge tone="danger">Termen depășit</Badge>}
+                  </div>
+                  {task.comment && (
+                    <p className="task-card-comment">
+                      <strong>{task.kind === 'completare' ? 'Informații cerute: ' : 'Comentariu: '}</strong>{task.comment}
+                    </p>
+                  )}
+                </div>
               </div>
               {scope === 'open' && (
                 <div className="task-card-actions">

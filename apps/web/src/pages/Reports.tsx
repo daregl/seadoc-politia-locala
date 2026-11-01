@@ -38,7 +38,7 @@ export default function ReportsPage() {
     <>
       <PageHeader
         title="Rapoarte"
-        subtitle={isAdmin ? 'Situația documentelor și a sarcinilor pe departamente.' : `Date pentru departamentul ${user.departmentName ?? 'dumneavoastră'}.`}
+        subtitle={isAdmin ? undefined : `Date pentru departamentul ${user.departmentName ?? 'dumneavoastră'}.`}
       />
       {isAdmin && (
         <div className="filter-box filter-inline">

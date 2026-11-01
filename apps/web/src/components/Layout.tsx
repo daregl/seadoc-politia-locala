@@ -1,32 +1,138 @@
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { ErrorBoundary } from './ErrorBoundary';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Archive, ChartColumn, Database, FileText, House, Inbox, ListChecks, Lock, LogOut, Menu, Plus,
+  Search, Settings, ShieldCheck, Workflow, X, type LucideIcon,
+} from 'lucide-react';
+import { api, qs } from '../api';
 import { useAuth, useUser } from '../auth';
+import { useAsync, useInterval } from '../hooks';
 import { roleLabel } from '../labels';
-import type { Permission } from '../types';
+import type { Permission, Task } from '../types';
+import { Logo } from './Brand';
+import { ErrorBoundary } from './ErrorBoundary';
 import { NotificationsBell } from './NotificationsBell';
+import { TASKS_CHANGED } from './TaskActions';
 
-interface NavItem { to: string; label: string; perms?: Permission[]; end?: boolean }
-const NAV: NavItem[] = [
-  { to: '/panou', label: 'Panou' },
-  { to: '/documente', label: 'Documente', end: true },
-  { to: '/documente/nou', label: 'Înregistrare document', perms: ['register'] },
-  { to: '/email-primit', label: 'Email primit', perms: ['register'] },
-  { to: '/sarcini', label: 'Sarcinile mele' },
-  { to: '/fluxuri', label: 'Fluxuri' },
-  { to: '/arhiva', label: 'Arhivă', perms: ['archive'] },
-  { to: '/audit', label: 'Audit', perms: ['audit_all', 'archive_journal'] },
-  { to: '/gdpr', label: 'GDPR', perms: ['audit_all'] },
-  { to: '/erp', label: 'Date ERP (import)' },
-  { to: '/rapoarte', label: 'Rapoarte', perms: ['reports'] },
-  { to: '/administrare', label: 'Administrare', perms: ['users_admin'] },
+interface NavItem { to: string; label: string; icon: LucideIcon; perms?: Permission[] }
+interface NavGroup { title?: string; items: NavItem[] }
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    items: [
+      { to: '/panou', label: 'Acasă', icon: House },
+      { to: '/sarcini', label: 'Sarcinile mele', icon: ListChecks },
+      { to: '/documente', label: 'Documente', icon: FileText },
+      { to: '/email-primit', label: 'Email primit', icon: Inbox, perms: ['register'] },
+    ],
+  },
+  {
+    title: 'Organizare',
+    items: [
+      { to: '/fluxuri', label: 'Fluxuri', icon: Workflow },
+      { to: '/arhiva', label: 'Arhivă', icon: Archive, perms: ['archive'] },
+      { to: '/erp', label: 'Date ERP', icon: Database },
+      { to: '/rapoarte', label: 'Rapoarte', icon: ChartColumn, perms: ['reports'] },
+    ],
+  },
+  {
+    title: 'Control',
+    items: [
+      { to: '/audit', label: 'Audit', icon: ShieldCheck, perms: ['audit_all', 'archive_journal'] },
+      { to: '/gdpr', label: 'GDPR', icon: Lock, perms: ['audit_all'] },
+      { to: '/administrare', label: 'Administrare', icon: Settings, perms: ['users_admin'] },
+    ],
+  },
 ];
 
-export function Layout() {
-  const { logout, can } = useAuth();
+const initials = (name: string): string => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toLocaleUpperCase('ro');
+
+function CountPill({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return <span className="nav-count">{count > 99 ? '99+' : count}<span className="visually-hidden"> deschise</span></span>;
+}
+
+/** Căutare disponibilă din orice pagină; pe pagina Documente rămâne doar căutarea ei. */
+function GlobalSearch() {
+  const navigate = useNavigate();
+  const [term, setTerm] = useState('');
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const q = term.trim();
+    navigate(q ? `/documente${qs({ q })}` : '/documente');
+    setTerm('');
+  };
+  return (
+    <form className="topbar-search" role="search" onSubmit={submit}>
+      <Search size={17} aria-hidden="true" />
+      <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Caută în documente" aria-label="Caută în documente" />
+    </form>
+  );
+}
+
+function UserMenu() {
+  const { logout } = useAuth();
   const user = useUser();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setOpen(false); buttonRef.current?.focus(); }
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="user-menu" ref={rootRef}>
+      <button
+        ref={buttonRef}
+        type="button"
+        className="avatar-btn"
+        aria-label={`Contul meu: ${user.fullName}`}
+        aria-expanded={open}
+        aria-haspopup="true"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="avatar" aria-hidden="true">{initials(user.fullName)}</span>
+      </button>
+      {open && (
+        <div className="user-panel">
+          <div className="user-panel-head">
+            <strong>{user.fullName}</strong>
+            <span className="muted">{roleLabel(user.role)}{user.departmentName ? ` · ${user.departmentName}` : ''}</span>
+          </div>
+          <button type="button" className="user-panel-action" onClick={() => void logout()}>
+            <LogOut size={16} aria-hidden="true" />Ieșire
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Layout() {
+  const { can } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const openTasks = useAsync(() => api<Task[]>(`/tasks${qs({ scope: 'open' })}`), [location.pathname]);
+  useInterval(() => { void openTasks.reload(); }, 60_000);
+  const taskCount = openTasks.data?.length ?? 0;
+  useEffect(() => {
+    const onChanged = () => { void openTasks.reload(); };
+    window.addEventListener(TASKS_CHANGED, onChanged);
+    return () => window.removeEventListener(TASKS_CHANGED, onChanged);
+  }, []);
 
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
   useEffect(() => {
@@ -36,60 +142,65 @@ export function Layout() {
     return () => document.removeEventListener('keydown', onKey);
   }, [menuOpen]);
 
-  const items = NAV.filter((item) => !item.perms || can(...item.perms));
+  const groups = NAV_GROUPS
+    .map((group) => ({ ...group, items: group.items.filter((item) => !item.perms || can(...item.perms)) }))
+    .filter((group) => group.items.length > 0);
+
   return (
     <div className="app">
       <a className="skip-link" href="#continut">Sari la conținut</a>
-      <header className="app-header">
-        <button
-          type="button"
-          className="header-btn menu-toggle"
-          aria-label={menuOpen ? 'Închide meniul' : 'Deschide meniul'}
-          aria-expanded={menuOpen}
-          aria-controls="navigatie"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            {menuOpen ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
-          </svg>
-        </button>
-        <NavLink to="/panou" className="brand">
-          <span className="brand-name">SeaDoc</span>
-          <span className="brand-tag">Management documente</span>
-        </NavLink>
-        <div className="header-right">
-          <NotificationsBell />
-          <div className="header-user">
-            <span className="header-user-name">{user.fullName}</span>
-            <span className="header-user-role">{roleLabel(user.role)}</span>
-          </div>
-          <button type="button" className="header-btn header-logout" onClick={() => void logout()}>Ieșire</button>
+      {menuOpen && <button type="button" className="sidebar-backdrop" aria-label="Închide meniul" onClick={() => setMenuOpen(false)} />}
+      <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
+        <div className="sidebar-brand">
+          <Link to="/panou" className="brand"><Logo /><span className="brand-name">SeaDoc</span></Link>
+          <button type="button" className="icon-btn sidebar-close" aria-label="Închide meniul" onClick={() => setMenuOpen(false)}><X size={20} aria-hidden="true" /></button>
         </div>
-      </header>
-      <div className="app-body">
-        <nav id="navigatie" className={`app-nav ${menuOpen ? 'app-nav-open' : ''}`} aria-label="Navigare principală">
-          <div className="nav-user">
-            <strong>{user.fullName}</strong>
-            <span>{roleLabel(user.role)}{user.departmentName ? ` · ${user.departmentName}` : ''}</span>
-          </div>
-          <ul>
-            {items.map((item) => (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) => (isActive || (item.to === '/documente' && /^\/documente\/\d/.test(location.pathname)) ? 'active' : '')}
-                >
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+        {can('register') && (
+          <Link to="/documente/nou" className="btn btn-primary btn-block sidebar-cta"><Plus size={18} aria-hidden="true" />Înregistrează document</Link>
+        )}
+        <nav id="navigatie" className="app-nav" aria-label="Navigare principală">
+          {groups.map((group) => (
+            <div key={group.title ?? 'principal'} className="nav-group">
+              {group.title && <p className="nav-group-title">{group.title}</p>}
+              <ul>
+                {group.items.map((item) => (
+                  <li key={item.to}>
+                    <NavLink to={item.to} className={({ isActive }) => (isActive && location.pathname !== '/documente/nou' ? 'active' : '')}>
+                      <item.icon size={18} aria-hidden="true" />
+                      <span className="nav-label">{item.label}</span>
+                      {item.to === '/sarcini' && <CountPill count={taskCount} />}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
+      </aside>
+
+      <div className="app-content">
+        <header className="topbar">
+          <Link to="/panou" className="brand topbar-brand"><Logo size={28} /><span className="brand-name">SeaDoc</span></Link>
+          {location.pathname !== '/documente' && <GlobalSearch />}
+          <div className="topbar-right">
+            <NotificationsBell />
+            <UserMenu />
+          </div>
+        </header>
         <main id="continut" className="app-main" tabIndex={-1}>
           <ErrorBoundary resetKey={location.pathname}><Outlet /></ErrorBoundary>
         </main>
       </div>
+
+      <nav className="bottom-nav" aria-label="Navigare rapidă">
+        <NavLink to="/panou"><House size={21} aria-hidden="true" /><span>Acasă</span></NavLink>
+        <NavLink to="/sarcini">
+          <span className="bottom-nav-icon"><ListChecks size={21} aria-hidden="true" /><CountPill count={taskCount} /></span>
+          <span>Sarcini</span>
+        </NavLink>
+        <NavLink to="/documente" className={({ isActive }) => (isActive && location.pathname !== '/documente/nou' ? 'active' : '')}><FileText size={21} aria-hidden="true" /><span>Documente</span></NavLink>
+        <button type="button" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><Menu size={21} aria-hidden="true" /><span>Meniu</span></button>
+      </nav>
     </div>
   );
 }

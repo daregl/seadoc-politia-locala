@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Check, CornerUpRight, MessageCircleQuestion, PenLine, X } from 'lucide-react';
 import { api } from '../api';
 import { useAuth, useUser } from '../auth';
 import { CertificateSign, signedMessage } from './CertificateSign';
@@ -6,6 +7,9 @@ import { useAsync } from '../hooks';
 import { APPROVE_LABEL, TASK_KIND } from '../labels';
 import type { AssigneeOptions, Task } from '../types';
 import { Alert, ErrorAlert, Field, Loading, Modal } from './Ui';
+
+/** Anunță meniul că numărul de sarcini deschise s-a schimbat. */
+export const TASKS_CHANGED = 'seadoc:tasks-changed';
 
 type DialogKind = 'approve' | 'sign' | 'reject' | 'redirect' | 'request_info';
 type TaskRef = Pick<Task, 'id' | 'kind' | 'name' | 'status'>;
@@ -32,7 +36,11 @@ export function TaskActions({ task, onDone }: { task: TaskRef; onDone: (message:
   }
 
   const fullFlow = task.kind === 'avizare' || task.kind === 'aprobare' || task.kind === 'semnare';
-  const done = (message: string) => { setDialog(null); onDone(message); };
+  const done = (message: string) => {
+    setDialog(null);
+    window.dispatchEvent(new Event(TASKS_CHANGED));
+    onDone(message);
+  };
   return (
     <div className="task-actions">
       <div className="task-actions-main">
@@ -41,16 +49,17 @@ export function TaskActions({ task, onDone }: { task: TaskRef; onDone: (message:
           className="btn btn-success btn-action"
           onClick={() => setDialog(task.kind === 'semnare' ? 'sign' : 'approve')}
         >
+          {task.kind === 'semnare' ? <PenLine size={17} aria-hidden="true" /> : <Check size={17} aria-hidden="true" />}
           {APPROVE_LABEL[task.kind]}
         </button>
         {fullFlow && (
-          <button type="button" className="btn btn-danger btn-action" onClick={() => setDialog('reject')}>Respinge</button>
+          <button type="button" className="btn btn-danger-soft btn-action" onClick={() => setDialog('reject')}><X size={17} aria-hidden="true" />Respinge</button>
         )}
       </div>
       {task.kind !== 'completare' && (
         <div className="task-actions-more">
-          <button type="button" className="btn btn-sm" onClick={() => setDialog('redirect')}>Redirecționează</button>
-          {fullFlow && <button type="button" className="btn btn-sm" onClick={() => setDialog('request_info')}>Cere informații</button>}
+          <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDialog('redirect')}><CornerUpRight size={15} aria-hidden="true" />Redirecționează</button>
+          {fullFlow && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDialog('request_info')}><MessageCircleQuestion size={15} aria-hidden="true" />Cere informații</button>}
         </div>
       )}
       {dialog === 'approve' && <ApproveDialog task={task} onClose={() => setDialog(null)} onDone={done} />}
@@ -287,7 +296,7 @@ export function ActionNotice({ message, onDismiss }: { message: string | null; o
     <Alert kind="success">
       <span className="notice-row">
         <span>{message}</span>
-        <button type="button" className="btn btn-sm" onClick={onDismiss}>Închide</button>
+        <button type="button" className="btn btn-sm btn-ghost" onClick={onDismiss}>Închide</button>
       </span>
     </Alert>
   );

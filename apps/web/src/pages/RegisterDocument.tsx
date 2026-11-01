@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowDownLeft, ArrowUpRight, Repeat, type LucideIcon } from 'lucide-react';
 import { api } from '../api';
 import { useUser } from '../auth';
 import { DocPicker, type PickedDoc } from '../components/DocPicker';
@@ -12,6 +13,8 @@ import { fmtSize, senderLabel } from '../format';
 import { indentedDepartments, indentedFolders } from '../tree';
 import type { Direction, Meta, TypeField } from '../types';
 import type { InboxMessage } from './EmailMessage';
+
+const DIRECTION_ICONS: Record<Direction, LucideIcon> = { intrat: ArrowDownLeft, iesit: ArrowUpRight, intern: Repeat };
 
 export default function RegisterDocumentPage() {
   usePageTitle('Înregistrare document');
@@ -115,8 +118,8 @@ export default function RegisterDocumentPage() {
   };
 
   return (
-    <>
-      <PageHeader title="Înregistrare document" subtitle="Numărul de înregistrare este alocat automat din registrul ales, la salvare." />
+    <div className="form-page stack">
+      <PageHeader title="Înregistrare document" subtitle="Numărul se alocă automat la salvare." />
       <ErrorAlert error={meta.error} retry={() => void meta.reload()} />
       <ErrorAlert error={email.error} retry={() => void email.reload()} />
       {emailId && email.data && email.data.status !== 'nou' && <Alert kind="warning" title="Mesajul a fost deja tratat"><Link to={`/email-primit/${emailId}`}>Înapoi la mesaj</Link></Alert>}
@@ -127,19 +130,35 @@ export default function RegisterDocumentPage() {
           <ErrorAlert error={error} />
           {problem && <Alert kind="error">{problem}</Alert>}
 
-          <Section title="Înregistrare">
+          <Section title="Fișier">
+            {emailId ? (
+              <p>
+                {emailAttachment ? <><strong>{emailAttachment.filename}</strong> ({fmtSize(emailAttachment.sizeBytes)}), din </> : 'Atașament din '}
+                <Link to={`/email-primit/${emailId}`}>mesajul primit pe email</Link>.
+              </p>
+            ) : <FileDrop file={file} onChange={setFile} label="Fișierul documentului" required />}
+          </Section>
+
+          <Section title="Detalii document">
             <div className="form-grid">
-              <fieldset className="fieldset form-grid-full">
+              <fieldset className="fieldset fieldset-plain form-grid-full">
                 <legend>Direcție</legend>
                 <div className="radio-row">
-                  {(Object.keys(DIRECTION_LABELS) as Direction[]).map((d) => (
-                    <label key={d} className="radio-pill">
-                      <input type="radio" name="direction" value={d} checked={direction === d} onChange={() => setDirection(d)} />
-                      <span>{DIRECTION_LABELS[d]}</span>
-                    </label>
-                  ))}
+                  {(Object.keys(DIRECTION_LABELS) as Direction[]).map((d) => {
+                    const Icon = DIRECTION_ICONS[d];
+                    return (
+                      <label key={d} className="radio-pill radio-pill-icon">
+                        <input type="radio" name="direction" value={d} checked={direction === d} onChange={() => setDirection(d)} />
+                        <Icon size={16} aria-hidden="true" />
+                        <span>{DIRECTION_LABELS[d]}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </fieldset>
+              <Field label="Titlu" required className="form-grid-full">
+                <input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={500} />
+              </Field>
               <Field label="Tip document" required>
                 <select value={typeId} onChange={(e) => setTypeId(e.target.value)} required>
                   <option value="">Alegeți tipul</option>
@@ -164,23 +183,12 @@ export default function RegisterDocumentPage() {
                   {folders.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
                 </select>
               </Field>
-            </div>
-          </Section>
-
-          <Section title="Conținut">
-            <div className="form-grid">
-              <Field label="Titlu" required className="form-grid-full">
-                <input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={500} />
-              </Field>
               <Field label="Emitent"><input value={issuer} onChange={(e) => setIssuer(e.target.value)} /></Field>
               <Field label="Destinatar"><input value={recipient} onChange={(e) => setRecipient(e.target.value)} /></Field>
-              <Field label="Rezumat" className="form-grid-full">
-                <textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} />
-              </Field>
               <Field label="Termen de soluționare"><input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>
               <label className="check form-grid-end">
                 <input type="checkbox" checked={personalData} onChange={(e) => setPersonalData(e.target.checked)} />
-                <span>Conține date cu caracter personal <span className="hint">Fiecare acces se înregistrează în jurnalul GDPR.</span></span>
+                <span>Conține date cu caracter personal</span>
               </label>
             </div>
           </Section>
@@ -200,7 +208,10 @@ export default function RegisterDocumentPage() {
             </Section>
           )}
 
-          <Section title="Legătură cu alt document (opțional)">
+          <Section title="Opțional: rezumat și legături" collapsible defaultOpen={summary !== '' || link !== null || erpRecords.length > 0}>
+            <Field label="Rezumat">
+              <textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} />
+            </Field>
             <div className="form-grid">
               <DocPicker value={link} onChange={setLink} label="Document legat" />
               <Field label="Tip legătură">
@@ -209,9 +220,6 @@ export default function RegisterDocumentPage() {
                 </select>
               </Field>
             </div>
-          </Section>
-
-          <Section title="Date ERP (import), opțional">
             <ErpPicker onPick={(r) => setErpRecords((list) => [...list, r])} excludeIds={erpRecords.map((r) => r.id)} />
             {erpRecords.length > 0 && (
               <ul className="row-list">
@@ -226,15 +234,6 @@ export default function RegisterDocumentPage() {
             )}
           </Section>
 
-          <Section title="Fișier">
-            {emailId ? (
-              <p>
-                {emailAttachment ? <><strong>{emailAttachment.filename}</strong> ({fmtSize(emailAttachment.sizeBytes)}), din </> : 'Atașament din '}
-                <Link to={`/email-primit/${emailId}`}>mesajul primit pe email</Link>.
-              </p>
-            ) : <FileDrop file={file} onChange={setFile} label="Fișierul documentului" required />}
-          </Section>
-
           <div className="form-actions">
             <button type="submit" className="btn btn-primary btn-large" disabled={busy || (!!emailId && !(emailAttachment && email.data?.status === 'nou'))}>
               {busy ? 'Se înregistrează…' : 'Înregistrează documentul'}
@@ -242,7 +241,7 @@ export default function RegisterDocumentPage() {
           </div>
         </form>
       )}
-    </>
+    </div>
   );
 }
 

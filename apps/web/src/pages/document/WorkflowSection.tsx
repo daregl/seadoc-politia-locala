@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { Play, Workflow } from 'lucide-react';
 import { api } from '../../api';
 import { useAuth, useUser } from '../../auth';
 import { Alert, ErrorAlert, Field, Loading, Section } from '../../components/Ui';
@@ -36,9 +37,10 @@ export function WorkflowSection({ doc, onStarted }: { doc: DocDetail; onStarted:
   return (
     <Section
       title="Flux de lucru"
-      actions={<Link to={`/documente/${doc.id}/flux`} className="btn btn-sm">Diagrama fluxului</Link>}
+      icon={Workflow}
+      actions={<Link to={`/documente/${doc.id}/flux`} className="panel-link">Diagrama</Link>}
     >
-      {doc.status === 'in_flux' && <Alert kind="info">Documentul se află într-un flux activ. Starea fiecărui pas se vede în diagramă.</Alert>}
+      {doc.status === 'in_flux' && <p className="muted">Documentul este într-un flux activ. Starea fiecărui pas se vede în diagramă.</p>}
       {!mayStart && doc.status !== 'in_flux' && (
         <p className="muted">{doc.canEdit ? 'Fluxul poate fi pornit de registratură sau de proprietarul documentului.' : 'Un document arhivat nu mai poate intra într-un flux.'}</p>
       )}
@@ -61,7 +63,7 @@ export function WorkflowSection({ doc, onStarted }: { doc: DocDetail; onStarted:
                   ))}
                 </select>
               </Field>
-              <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Se pornește…' : 'Pornește fluxul'}</button>
+              <button type="submit" className="btn btn-primary" disabled={busy}><Play size={15} aria-hidden="true" />{busy ? 'Se pornește…' : 'Pornește fluxul'}</button>
             </div>
           )}
         </form>

@@ -200,14 +200,11 @@ export default function WorkflowEditor({ definition, onPublished }: { definition
     <>
       <PageHeader
         title={definition ? definition.name : 'Flux nou'}
-        subtitle={definition ? `Versiunea curentă: ${definition.version}. Publicarea creează versiunea ${nextVersion}.` : 'Noul flux pornește de la o diagramă minimă, de la start la final.'}
+        subtitle={definition ? `Versiunea curentă: ${definition.version}. Publicarea creează versiunea ${nextVersion}; fluxurile deja pornite rămân pe versiunea lor.` : 'Noul flux pornește de la o diagramă minimă, de la start la final.'}
         actions={<Link className="btn" to="/fluxuri">Înapoi la fluxuri</Link>}
       />
 
       {published && <Alert kind="success">{published}</Alert>}
-      <Alert kind="info">
-        Publicarea creează o versiune nouă. Instanțele aflate în derulare rămân pe versiunea cu care au pornit; versiunea nouă se aplică doar fluxurilor pornite după publicare.
-      </Alert>
       <p className="phone-note">Editorul de diagrame se folosește cel mai bine pe un ecran mare.</p>
 
       <section className="panel" aria-label="Date generale">

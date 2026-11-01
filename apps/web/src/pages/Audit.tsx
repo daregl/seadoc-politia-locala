@@ -71,8 +71,8 @@ export default function AuditPage() {
       <PageHeader
         title="Audit"
         subtitle={full
-          ? 'Jurnal protejat prin lanț de amprente: orice modificare ulterioară a unui rând devine detectabilă.'
-          : 'Jurnalul de arhivă: contul dumneavoastră vede doar acțiunile din arhivă.'}
+          ? 'Orice modificare ulterioară a unui rând devine detectabilă.'
+          : 'Contul dumneavoastră vede doar acțiunile din arhivă.'}
         actions={(
           <>
             <a className="btn" href={`/api/audit/export${exportQuery}`}>Export CSV</a>

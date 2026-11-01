@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from 'react';
+import { FileText, UploadCloud, X } from 'lucide-react';
 import { fmtSize } from '../format';
 
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.tif,.tiff,.txt,.docx,.xlsx,.pptx,.doc,.xls,.ppt';
@@ -36,8 +37,27 @@ export function FileDrop({ file, onChange, label = 'Fișier', required }: {
         {label}
         {required && <span className="required" title="Câmp obligatoriu"> *</span>}
       </label>
-      <div
-        className={`dropzone ${over ? 'dropzone-over' : ''} ${file ? 'dropzone-filled' : ''}`}
+      {file && (
+        <div className="dropzone-picked">
+          <span className="icon-chip" aria-hidden="true"><FileText size={18} /></span>
+          <p className="dropzone-file"><strong>{file.name}</strong> <span className="muted">{fmtSize(file.size)}</span></p>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Elimină fișierul"
+            onClick={() => {
+              accept(null);
+              if (inputRef.current) inputRef.current.value = '';
+            }}
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+      <label
+        htmlFor={id}
+        hidden={!!file}
+        className={`dropzone ${over ? 'dropzone-over' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => {
@@ -46,32 +66,18 @@ export function FileDrop({ file, onChange, label = 'Fișier', required }: {
           accept(e.dataTransfer.files[0] ?? null);
         }}
       >
-        {file ? (
-          <p className="dropzone-file"><strong>{file.name}</strong> <span className="muted">({fmtSize(file.size)})</span></p>
-        ) : (
-          <p className="dropzone-text">Trageți fișierul aici sau alegeți-l de pe dispozitiv</p>
-        )}
+        <UploadCloud className="dropzone-icon" size={28} aria-hidden="true" />
+        <span className="dropzone-text">Trageți fișierul aici sau <span className="dropzone-choose">alegeți-l</span></span>
+        <span className="hint">PDF, imagini, TXT sau Office, cel mult 50 MB</span>
         <input
           id={id}
           ref={inputRef}
+          className="visually-hidden"
           type="file"
           accept={ACCEPT}
           onChange={(e) => accept(e.target.files?.[0] ?? null)}
         />
-        {file && (
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => {
-              accept(null);
-              if (inputRef.current) inputRef.current.value = '';
-            }}
-          >
-            Elimină fișierul
-          </button>
-        )}
-      </div>
-      <span className="hint">PDF, imagini (PNG, JPEG, TIFF), TXT sau documente Office. Cel mult 50 MB.</span>
+      </label>
       {problem && <span className="field-error" role="alert">{problem}</span>}
     </div>
   );

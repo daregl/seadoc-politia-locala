@@ -21,7 +21,7 @@ export default function ArchivePage() {
 
   return (
     <>
-      <PageHeader title="Arhivă" subtitle="Documente arhivate, conform nomenclatorului și termenelor de păstrare. Eliminarea cere propunere și decizie din partea a două persoane diferite." />
+      <PageHeader title="Arhivă" subtitle="Eliminarea cere propunerea și decizia a două persoane diferite." />
       <div className="tabs" role="group" aria-label="Secțiuni arhivă">
         <button type="button" className={tab === 'list' ? 'tab tab-active' : 'tab'} aria-pressed={tab === 'list'} onClick={() => setParams({})}>Documente arhivate</button>
         <button type="button" className={tab === 'proposals' ? 'tab tab-active' : 'tab'} aria-pressed={tab === 'proposals'} onClick={() => setParams({ vedere: 'propuneri' })}>

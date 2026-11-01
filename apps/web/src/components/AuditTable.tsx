@@ -23,7 +23,6 @@ export function AuditTable({ items, caption }: { items: AuditRow[]; caption: str
             <th scope="col">Utilizator</th>
             <th scope="col">Acțiune</th>
             <th scope="col">Document</th>
-            <th scope="col">IP</th>
             <th scope="col">Detalii</th>
             <th scope="col">Amprentă</th>
           </tr>
@@ -35,15 +34,21 @@ export function AuditTable({ items, caption }: { items: AuditRow[]; caption: str
               <tr key={String(row.seq)}>
                 <td data-label="Nr.">{String(row.seq)}</td>
                 <td data-label="Moment" className="cell-nowrap">{fmtDateTime(row.at)}</td>
-                <td data-label="Utilizator">{row.username ?? 'Sistem'}</td>
+                <td data-label="Utilizator">
+                  <div>
+                    {row.username ?? 'Sistem'}
+                    {row.ip && <div className="doc-sub">{row.ip}</div>}
+                  </div>
+                </td>
                 <td data-label="Acțiune">
-                  {auditLabel(row.action)}
-                  <div><code className="code-small">{row.action}</code></div>
+                  <div>
+                    {auditLabel(row.action)}
+                    <div><code className="code-small">{row.action}</code></div>
+                  </div>
                 </td>
                 <td data-label="Document">
                   {row.documentId ? <Link to={`/documente/${row.documentId}`}>#{row.documentId}</Link> : '–'}
                 </td>
-                <td data-label="IP">{row.ip || '–'}</td>
                 <td data-label="Detalii" className="cell-wrap cell-small">{details || '–'}</td>
                 <td data-label="Amprentă" title={row.hash}><code className="code-small">{shortHash(row.hash)}</code></td>
               </tr>

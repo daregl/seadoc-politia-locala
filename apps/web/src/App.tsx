@@ -72,7 +72,7 @@ function NotFound() {
     <>
       <PageHeader title="Pagina nu există" />
       <p>Adresa accesată nu corespunde niciunei pagini.</p>
-      <p><Link to="/panou">Înapoi la panou</Link></p>
+      <p><Link to="/panou">Înapoi la pagina principală</Link></p>
     </>
   );
 }

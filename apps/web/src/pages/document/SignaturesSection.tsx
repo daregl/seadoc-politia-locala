@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PenLine } from 'lucide-react';
 import { api } from '../../api';
 import { useAuth } from '../../auth';
 import { CertificateSign, signedMessage } from '../../components/CertificateSign';
@@ -44,8 +45,12 @@ export function SignaturesSection({ doc, onSigned }: { doc: DocDetail; onSigned?
   return (
     <Section
       title="Semnături"
+      icon={PenLine}
+      count={doc.signatures.length}
+      collapsible
+      defaultOpen={doc.signatures.length > 0}
       actions={doc.signatures.length > 0
-        ? <button type="button" className="btn btn-sm" onClick={verify} disabled={busy}>{busy ? 'Se verifică…' : 'Verifică semnăturile'}</button>
+        ? <button type="button" className="btn btn-sm" onClick={verify} disabled={busy}>{busy ? 'Se verifică…' : 'Verifică'}</button>
         : undefined}
     >
       <ErrorAlert error={error} />
@@ -71,7 +76,7 @@ export function SignaturesSection({ doc, onSigned }: { doc: DocDetail; onSigned?
         </ul>
       )}
       <p className="hint">
-        Semnătura electronică internă confirmă, în cadrul SeaDoc, identitatea semnatarului prin parola contului și amprenta versiunii semnate. Nu este o semnătură electronică calificată.
+        Semnătura internă confirmă în SeaDoc identitatea semnatarului și versiunea semnată. Nu este o semnătură electronică calificată.
       </p>
       <PdfSignatureChecks doc={doc} />
       {can('sign_qualified') && doc.canAddVersion && doc.status !== 'in_flux' && (

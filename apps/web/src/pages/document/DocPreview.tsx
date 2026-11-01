@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Download, ExternalLink } from 'lucide-react';
 import { api, fileUrl } from '../../api';
 import { Alert, ErrorAlert, Loading } from '../../components/Ui';
 import { useAsync } from '../../hooks';
@@ -48,35 +49,37 @@ export function DocPreview({ doc, version }: { doc: DocDetail; version: DocVersi
 
   return (
     <div className="preview">
-      {views.length > 1 && (
-        <div className="tabs tabs-small" role="group" aria-label="Mod de vizualizare">
-          {views.map((v) => (
-            <button key={v.key} type="button" className={view === v.key ? 'tab tab-active' : 'tab'} aria-pressed={view === v.key} onClick={() => setView(v.key)}>
-              {v.label}
-            </button>
-          ))}
+      <div className="preview-toolbar">
+        {views.length > 1 && (
+          <div className="tabs tabs-small" role="group" aria-label="Mod de vizualizare">
+            {views.map((v) => (
+              <button key={v.key} type="button" className={view === v.key ? 'tab tab-active' : 'tab'} aria-pressed={view === v.key} onClick={() => setView(v.key)}>
+                {v.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="preview-actions">
+          {hasPdf && (
+            <a className="btn btn-sm" href={pdfUrl} target="_blank" rel="noopener" aria-label={version.hasSearchable ? 'Deschide PDF-ul căutabil' : 'Deschide PDF-ul'}>
+              <ExternalLink size={15} aria-hidden="true" />Deschide
+            </a>
+          )}
+          {isImage && !hasPdf && <a className="btn btn-sm" href={originalUrl} target="_blank" rel="noopener"><ExternalLink size={15} aria-hidden="true" />Deschide</a>}
+          <a className={nativeApp ? 'btn btn-sm btn-primary' : 'btn btn-sm'} href={download}>
+            <Download size={15} aria-hidden="true" />{nativeApp ? 'Descarcă și deschide în aplicație' : 'Descarcă originalul'}
+          </a>
+          {version.hasSearchable && (
+            <a className="btn btn-sm" href={fileUrl(doc.id, { version: version.versionNo, kind: 'searchable', download: true })}><Download size={15} aria-hidden="true" />PDF căutabil</a>
+          )}
         </div>
-      )}
+      </div>
       {view === 'pdf' && <iframe className="preview-frame" src={pdfUrl} title={`Previzualizare: ${version.filename}`} />}
       {view === 'original' && <iframe className="preview-frame" src={originalUrl} title={`Original: ${version.filename}`} />}
       {view === 'image' && <img className="preview-image" src={originalUrl} alt={`Previzualizare: ${version.filename}`} />}
       {view === 'office' && <OfficePreview documentId={doc.id} version={version} />}
       {view === 'text' && !isLatest && <p className="hint">Textul afișat provine din ultima versiune a documentului, nu din versiunea {version.versionNo}.</p>}
       {view === 'text' && <ExtractedText documentId={doc.id} pending={pending} statusKey={`${version.versionNo}-${version.ocrStatus}`} failed={version.ocrStatus === 'esuat'} />}
-      <div className="preview-actions">
-        {hasPdf && (
-          <a className="btn" href={pdfUrl} target="_blank" rel="noopener">
-            {version.hasSearchable ? 'Deschide PDF-ul căutabil' : 'Deschide PDF-ul'}
-          </a>
-        )}
-        {isImage && !hasPdf && <a className="btn" href={originalUrl} target="_blank" rel="noopener">Deschide imaginea</a>}
-        <a className={nativeApp ? 'btn btn-primary' : 'btn'} href={download}>
-          {nativeApp ? 'Descarcă și deschide în aplicație' : 'Descarcă originalul'}
-        </a>
-        {version.hasSearchable && (
-          <a className="btn" href={fileUrl(doc.id, { version: version.versionNo, kind: 'searchable', download: true })}>Descarcă PDF-ul căutabil</a>
-        )}
-      </div>
       {isLegacy && <Alert kind="info">Formatele binare vechi (.doc, .xls, .ppt) nu se previzualizează în browser și nu au text extras. Descărcați fișierul și deschideți-l în aplicația instalată.</Alert>}
       {isTiff && !hasPdf && <p className="hint">Browserele nu afișează TIFF. După OCR, documentul apare aici ca PDF căutabil.</p>}
       {nativeApp && !isLegacy && !isTiff && <p className="hint">Acest tip de fișier nu se poate previzualiza în browser. Mai sus este textul extras; fișierul se deschide cu aplicația instalată pe calculator.</p>}

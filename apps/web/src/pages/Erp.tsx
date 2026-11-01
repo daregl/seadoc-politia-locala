@@ -172,7 +172,7 @@ export default function ErpPage() {
 
   return (
     <>
-      <PageHeader title="Date ERP (import)" subtitle="Parteneri, facturi și comenzi încărcate din fișiere exportate, pentru legarea cu documentele." />
+      <PageHeader title="Date ERP (import)" subtitle="Parteneri, facturi și comenzi importate din fișiere." />
       <Alert kind="info">Datele sunt la zi doar până la ultimul import. Nu există o conexiune directă cu sistemul ERP.</Alert>
       {can('users_admin') && <ImportPanel onImported={() => void list.reload()} />}
       <Section title="Înregistrări">
@@ -186,7 +186,7 @@ export default function ErpPage() {
               {Object.entries(ERP_KIND_LABEL).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
             </select>
           </Field>
-          <div className="form-actions"><button type="submit" className="btn">Caută</button></div>
+          <div className="form-grid-end"><button type="submit" className="btn">Caută</button></div>
         </form>
         <ErrorAlert error={list.error} retry={() => void list.reload()} />
         {list.loading && !list.data && <Loading />}

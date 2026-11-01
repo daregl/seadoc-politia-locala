@@ -46,7 +46,7 @@ export default function GdprPage() {
 
   return (
     <>
-      <PageHeader title="GDPR: jurnal de acces" subtitle="Fiecare consultare a unui document marcat cu date cu caracter personal: cine, când și de unde." actions={<Link className="btn" to="/gdpr/cereri">Cereri GDPR</Link>} />
+      <PageHeader title="GDPR: jurnal de acces" subtitle="Cine a consultat documente cu date personale, când și de unde." actions={<Link className="btn" to="/gdpr/cereri">Cereri GDPR</Link>} />
       <form className="filter-box" onSubmit={apply}>
         <div className="form-grid form-grid-dense">
           <Field label="Document (nr. intern)">

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Bell } from 'lucide-react';
 import { api, errorMessage } from '../api';
 import { fmtDateTime } from '../format';
 import { useInterval } from '../hooks';
@@ -80,16 +81,14 @@ export function NotificationsBell() {
         aria-haspopup="true"
         onClick={() => { setOpen(!open); if (!open) void load(); }}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8" /><path d="M10 21a2 2 0 0 0 4 0" />
-        </svg>
+        <Bell size={20} aria-hidden="true" />
         {unread > 0 && <span className="bell-count" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
       </button>
       {open && (
         <div className="bell-panel">
           <div className="bell-head">
             <h2>Notificări</h2>
-            {unread > 0 && <button type="button" className="btn btn-sm" onClick={readAll}>Marchează toate ca citite</button>}
+            {unread > 0 && <button type="button" className="btn btn-sm btn-ghost" onClick={readAll}>Marchează ca citite</button>}
           </div>
           {error && <p className="bell-error" role="alert">{error}</p>}
           {!data && !error && <p className="bell-empty">Se încarcă…</p>}

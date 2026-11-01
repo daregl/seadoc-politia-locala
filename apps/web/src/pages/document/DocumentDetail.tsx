@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, CircleCheck, FileSearch, Info, ShieldCheck, Star } from 'lucide-react';
+import { TaskIcon } from '../../components/Brand';
 import { api, errorMessage, qs } from '../../api';
 import { useAuth } from '../../auth';
 import { ActionNotice, TaskActions } from '../../components/TaskActions';
@@ -95,30 +97,42 @@ function DocumentDetailPage({ id }: { id: number }) {
     <div className="doc-page">
       {registered !== undefined && (
         <div className="registered" role="status">
-          <div>
-            <p className="registered-label">Document înregistrat cu numărul</p>
-            <p className="registered-number">{registered || 'fără număr de registru'}</p>
+          <div className="registered-main">
+            <CircleCheck size={26} aria-hidden="true" />
+            <div>
+              <p className="registered-label">Document înregistrat cu numărul</p>
+              <p className="registered-number">{registered || 'fără număr de registru'}</p>
+            </div>
           </div>
           <button type="button" className="btn btn-sm" onClick={() => navigate(location.pathname, { replace: true, state: null })}>Închide</button>
         </div>
       )}
 
+      <Link to="/documente" className="back-link"><ArrowLeft size={16} aria-hidden="true" />Documente</Link>
+
       <header className="doc-header">
         <div className="doc-header-text">
           <p className="doc-number">{doc.regLabel ?? 'Fără număr de registru'}</p>
           <h1>{doc.title}</h1>
-          <div className="badge-row">
+          <div className="doc-facts">
             <StatusBadge status={doc.status} />
-            <Badge>{doc.type.name}</Badge>
-            <Badge>{doc.department}</Badge>
             {doc.personalData && <Badge tone="warning">Date personale</Badge>}
+            <span>{doc.type.name}</span>
+            <span>{doc.department}</span>
           </div>
         </div>
         <div className="doc-header-actions">
-          <button type="button" className="btn" aria-pressed={doc.favorite} onClick={toggleFavorite}>
-            <span aria-hidden="true">{doc.favorite ? '★ ' : '☆ '}</span>{doc.favorite ? 'În favorite' : 'Adaugă la favorite'}
+          {canSeeAudit && <Link className="btn" to={`/audit${qs({ documentId: doc.id })}`} aria-label="Audit document" title="Audit document"><ShieldCheck size={16} aria-hidden="true" /><span className="btn-text">Audit</span></Link>}
+          <button
+            type="button"
+            className="btn btn-icon"
+            aria-pressed={doc.favorite}
+            aria-label={doc.favorite ? 'Elimină de la favorite' : 'Adaugă la favorite'}
+            title={doc.favorite ? 'Elimină de la favorite' : 'Adaugă la favorite'}
+            onClick={toggleFavorite}
+          >
+            <Star className="star-icon" size={17} aria-hidden="true" />
           </button>
-          {canSeeAudit && <Link className="btn" to={`/audit${qs({ documentId: doc.id })}`}>Audit document</Link>}
         </div>
       </header>
 
@@ -132,13 +146,16 @@ function DocumentDetailPage({ id }: { id: number }) {
           {myTasks.map((task) => (
             <section key={task.id} className="my-task" aria-label={`Sarcina mea: ${task.name}`}>
               <div className="my-task-head">
-                <div>
-                  <p className="my-task-kicker">Sarcina dumneavoastră: {TASK_KIND[task.kind] ?? task.kind}</p>
-                  <h2>{task.name}</h2>
+                <div className="my-task-title">
+                  <TaskIcon kind={task.kind} tone={task.overdue ? 'danger' : 'primary'} />
+                  <div>
+                    <p className="my-task-kicker">Sarcina dumneavoastră: {TASK_KIND[task.kind] ?? task.kind}</p>
+                    <h2>{task.name}</h2>
+                  </div>
                 </div>
                 <div className="my-task-due">
                   {task.overdue && <Badge tone="danger">Termen depășit</Badge>}
-                  <span className="muted">Termen: {fmtDateTime(task.dueAt, 'fără termen')}</span>
+                  {task.dueAt && <span className="muted">Termen: {fmtDateTime(task.dueAt)}</span>}
                 </div>
               </div>
               {task.comment && (
@@ -156,11 +173,11 @@ function DocumentDetailPage({ id }: { id: number }) {
 
       <div className="doc-grid">
         <div className="doc-col-main">
-          <Section title={`Previzualizare: versiunea ${version.versionNo}`}>
-            <div className="ocr-line" aria-live="polite">
-              <span className="field-label">Procesare text</span>
-              <OcrBadges version={version} />
-            </div>
+          <Section
+            title={doc.versions.length > 1 ? `Document: versiunea ${version.versionNo}` : 'Document'}
+            icon={FileSearch}
+            actions={<span aria-live="polite">{version.ocrStatus !== 'finalizat' && version.ocrStatus !== 'neaplicabil' && <OcrBadges version={version} />}</span>}
+          >
             <DocPreview doc={doc} version={version} />
           </Section>
           <VersionsSection doc={doc} selected={version.versionNo} onSelect={setSelected} onUploaded={async () => { setSelected(null); await reload(); }} />
@@ -168,9 +185,8 @@ function DocumentDetailPage({ id }: { id: number }) {
           <ErpSection doc={doc} />
         </div>
         <div className="doc-col-side">
-          <Section title="Date de înregistrare">
+          <Section title="Detalii" icon={Info}>
             <DefinitionList items={[
-              { label: 'Număr', value: doc.regLabel },
               { label: 'Data înregistrării', value: fmtDateTime(doc.regDate) },
               { label: 'Registru', value: doc.register },
               { label: 'Direcție', value: doc.direction ? DIRECTION_LABELS[doc.direction] : null },
@@ -180,6 +196,7 @@ function DocumentDetailPage({ id }: { id: number }) {
               { label: 'Dosar', value: doc.folder },
               { label: 'Proprietar', value: doc.owner },
               { label: 'Creat la', value: fmtDateTime(doc.createdAt) },
+              ...metadataRows,
             ]} />
             {doc.summary && (
               <div className="doc-summary">
@@ -188,9 +205,6 @@ function DocumentDetailPage({ id }: { id: number }) {
               </div>
             )}
           </Section>
-          {metadataRows.length > 0 && (
-            <Section title="Metadate"><DefinitionList items={metadataRows} /></Section>
-          )}
           <WorkflowSection doc={doc} onStarted={afterAction} />
           <SignaturesSection doc={doc} onSigned={afterAction} />
           <RetentionSection doc={doc} onArchived={afterAction} />

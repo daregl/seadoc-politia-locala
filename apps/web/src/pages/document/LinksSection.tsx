@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { Link2, Plus } from 'lucide-react';
 import { api } from '../../api';
 import { DocPicker, type PickedDoc } from '../../components/DocPicker';
 import { Alert, Empty, ErrorAlert, Field, Section } from '../../components/Ui';
@@ -37,8 +38,12 @@ export function LinksSection({ doc, onChanged }: { doc: DocDetail; onChanged: ()
   return (
     <Section
       title="Documente legate"
+      icon={Link2}
+      count={doc.links.length}
+      collapsible
+      defaultOpen={doc.links.length > 0 || adding}
       actions={doc.canEdit ? (
-        <button type="button" className="btn btn-sm" aria-expanded={adding} onClick={() => setAdding(!adding)}>Adaugă legătură</button>
+        <button type="button" className="btn btn-sm" aria-expanded={adding} onClick={() => setAdding(!adding)}><Plus size={15} aria-hidden="true" />Adaugă</button>
       ) : undefined}
     >
       {adding && (

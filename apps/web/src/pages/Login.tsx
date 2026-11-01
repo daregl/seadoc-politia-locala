@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
+import { Logo } from '../components/Brand';
 import { api, errorMessage } from '../api';
 import { useAuth } from '../auth';
 import { Alert, ErrorAlert, Field, Loading } from '../components/Ui';
@@ -18,29 +20,19 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
-      <aside className="auth-brand">
-        <div>
-          <p className="auth-logo">SeaDoc</p>
-          <p className="auth-lead">Management electronic al documentelor</p>
-          <ul className="auth-features">
-            <li>Registratură cu numerotare automată</li>
-            <li>Fluxuri de avizare și aprobare</li>
-            <li>Arhivă cu termene de păstrare</li>
-            <li>Jurnal de audit protejat la modificare</li>
-          </ul>
-        </div>
-        <p className="auth-vendor">Seamore Systems</p>
-      </aside>
-      <main className="auth-main">
-        <div className="auth-card">
+      <div className="auth-brand">
+        <Logo size={36} />
+        <p className="auth-logo">SeaDoc</p>
+      </div>
+      <main className="auth-card">
           {status === 'loading' && <Loading label="Se verifică sesiunea…" />}
           {status === 'unavailable' && <Unavailable />}
           {status === 'anon' && <PasswordStep notice={notice} />}
           {status === 'mfa' && <TotpStep />}
           {status === 'mfa_enrol' && <EnrolStep />}
           {status === 'change_password' && <ChangePasswordStep />}
-        </div>
       </main>
+      <p className="auth-vendor">Seamore Systems</p>
     </div>
   );
 }
@@ -102,7 +94,6 @@ function PasswordStep({ notice }: { notice: string | null }) {
   return (
     <form onSubmit={submit}>
       <h1>Autentificare</h1>
-      <p className="auth-intro">Introduceți datele contului de serviciu.</p>
       {notice && !error && <Alert kind="warning">{notice}</Alert>}
       {ssoError && !error && <Alert kind="error">{ssoError}</Alert>}
       <ErrorAlert error={error} />
@@ -118,7 +109,7 @@ function PasswordStep({ notice }: { notice: string | null }) {
         />
       </Field>
       <Field label="Parolă">
-        <span className="input-with-action">
+        <span className="input-with-action input-reveal">
           <input
             type={show ? 'text' : 'password'}
             value={password}
@@ -126,8 +117,8 @@ function PasswordStep({ notice }: { notice: string | null }) {
             autoComplete="current-password"
             required
           />
-          <button type="button" className="btn btn-ghost" aria-pressed={show} onClick={() => setShow(!show)}>
-            {show ? 'Ascunde' : 'Afișează'}
+          <button type="button" className="icon-btn" aria-label={show ? 'Ascunde textul' : 'Afișează textul'} title={show ? 'Ascunde' : 'Afișează'} onClick={() => setShow(!show)}>
+            {show ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
           </button>
         </span>
       </Field>
@@ -169,7 +160,7 @@ function CodeForm({ submitLabel, children }: { submitLabel: string; children?: R
     <form onSubmit={(e) => { e.preventDefault(); if (code.length === 6) void verify(code); }}>
       {children}
       <ErrorAlert error={error} />
-      <Field label="Cod de verificare" hint="Codul din aplicația de autentificare, 6 cifre. Se schimbă la fiecare 30 de secunde.">
+      <Field label="Cod de verificare" hint="Se schimbă la fiecare 30 de secunde.">
         <input
           ref={inputRef}
           className="code-input"
@@ -208,7 +199,7 @@ function TotpStep() {
     <CodeForm submitLabel="Verifică și intră">
       <p className="auth-step">Verificare în doi pași</p>
       <h1>Introduceți codul</h1>
-      <p className="auth-intro">Deschideți aplicația de autentificare de pe telefon și introduceți codul afișat pentru SeaDoc.</p>
+      <p className="auth-intro">Scrieți codul de 6 cifre afișat pentru SeaDoc în aplicația de autentificare de pe telefon.</p>
     </CodeForm>
   );
 }

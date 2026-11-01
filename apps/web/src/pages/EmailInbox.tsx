@@ -82,7 +82,7 @@ export default function EmailInboxPage() {
     <>
       <PageHeader
         title="Email primit"
-        subtitle="Mesajele din căsuța registraturii. Alegeți atașamentul și înregistrați-l ca document, sau renunțați la mesaj."
+        subtitle="Alegeți un atașament și înregistrați-l ca document."
         actions={imap?.enabled ? (
           <button type="button" className="btn" disabled={polling} onClick={() => void pollNow()}>{polling ? 'Se verifică…' : 'Verifică acum'}</button>
         ) : undefined}

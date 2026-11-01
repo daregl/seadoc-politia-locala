@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { History, Upload } from 'lucide-react';
 import { api } from '../../api';
 import { FileDrop } from '../../components/FileDrop';
 import { Alert, Badge, ErrorAlert, Section } from '../../components/Ui';
@@ -56,8 +57,12 @@ export function VersionsSection({ doc, selected, onSelect, onUploaded }: {
   return (
     <Section
       title="Versiuni"
+      icon={History}
+      count={doc.versions.length}
+      collapsible
+      defaultOpen={doc.versions.length > 1 || showUpload || done !== null}
       actions={doc.canAddVersion ? (
-        <button type="button" className="btn btn-sm" aria-expanded={showUpload} onClick={() => setShowUpload(!showUpload)}>Încarcă o versiune nouă</button>
+        <button type="button" className="btn btn-sm" aria-expanded={showUpload} onClick={() => setShowUpload(!showUpload)}><Upload size={15} aria-hidden="true" />Versiune nouă</button>
       ) : undefined}
     >
       {done && <Alert kind="success">{done}</Alert>}
@@ -83,7 +88,7 @@ export function VersionsSection({ doc, selected, onSelect, onUploaded }: {
             </div>
             {v.versionNo !== selected
               ? <button type="button" className="btn btn-sm" onClick={() => onSelect(v.versionNo)}>Previzualizează</button>
-              : <span className="muted cell-small">Afișată mai sus</span>}
+              : <span className="muted cell-small">Afișată</span>}
           </li>
         ))}
       </ul>
