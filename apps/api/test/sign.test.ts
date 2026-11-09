@@ -257,7 +257,11 @@ function independentParts(pdf: Buffer) {
   const [a, b, c, d] = m.slice(1, 5).map(Number);
   const covered = Buffer.concat([pdf.subarray(a, a + b), pdf.subarray(c, c + d)]);
   const hex = pdf.toString('latin1', b + 1, c - 1);
-  const der = Buffer.from(hex.replace(/(00)+$/, ''), 'hex');
+  // Lungimea reală din antetul DER: semnătura se poate termina cu 0x00, deci zerourile de completare nu se taie după tipar.
+  const raw = Buffer.from(hex, 'hex');
+  const n = raw[1] & 0x7f;
+  const len = raw[1] < 0x80 ? 2 + raw[1] : 2 + n + [...raw.subarray(2, 2 + n)].reduce((acc, x) => acc * 256 + x, 0);
+  const der = raw.subarray(0, len);
   return { a, b, c, d, covered, der };
 }
 
