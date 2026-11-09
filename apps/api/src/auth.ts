@@ -124,6 +124,20 @@ export class AuthGuard implements CanActivate {
     const targets = [ctx.getHandler(), ctx.getClass()];
     if (this.reflector.getAllAndOverride<boolean>('public', targets)) return true;
     const req = ctx.switchToHttp().getRequest<Request & { user?: CurrentUser; session_row?: any }>();
+    // Integrările (contabilitate, HR, email) folosesc un token de API în locul cookie-ului de sesiune.
+    const bearer = /^Bearer (sd_[A-Za-z0-9_-]{20,})$/.exec(req.headers.authorization ?? '')?.[1];
+    if (bearer) {
+      const row = await this.db.one(
+        `UPDATE api_tokens SET last_used_at = now() WHERE token_hash = $1 AND revoked_at IS NULL
+           AND (expires_on IS NULL OR expires_on >= (now() AT TIME ZONE 'Europe/Bucharest')::date) RETURNING user_id`, [sha(bearer)]);
+      if (!row) fail(401, 'Token de API invalid, expirat sau revocat');
+      const apiUser = await this.auth.loadUser(row.user_id, req.ip ?? '');
+      if (!apiUser) fail(401, 'Cont inactiv');
+      req.user = { ...apiUser!, mustChangePassword: false };
+      const needed = this.reflector.getAllAndOverride<Permission[]>('perms', targets) ?? [];
+      if (needed.length && !needed.some((p) => can(req.user!, p))) forbidden();
+      return true;
+    }
     const token = req.cookies?.[COOKIE];
     if (!token) fail(401, 'Autentificare necesară');
     const session = await this.db.one('SELECT * FROM sessions WHERE token_hash = $1 AND expires_at > now()', [sha(token)]);

@@ -36,6 +36,7 @@ export default function RegisterDocumentPage() {
   const [departmentId, setDepartmentId] = useState(user.departmentId ? String(user.departmentId) : '');
   const [folderId, setFolderId] = useState('');
   const [personalData, setPersonalData] = useState(false);
+  const [confidential, setConfidential] = useState(false);
   const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [link, setLink] = useState<PickedDoc | null>(null);
   const [linkKind, setLinkKind] = useState('raspuns_la');
@@ -84,6 +85,7 @@ export default function RegisterDocumentPage() {
       .filter(([, value]) => value));
     form.set('metadata', JSON.stringify(values));
     form.set('personalData', String(personalData));
+    form.set('confidential', String(confidential));
     if (link) {
       form.set('linkToId', String(link.id));
       form.set('linkKind', linkKind);
@@ -182,6 +184,10 @@ export default function RegisterDocumentPage() {
               <label className="check form-grid-end">
                 <input type="checkbox" checked={personalData} onChange={(e) => setPersonalData(e.target.checked)} />
                 <span>Conține date cu caracter personal</span>
+              </label>
+              <label className="check form-grid-end">
+                <input type="checkbox" checked={confidential} onChange={(e) => setConfidential(e.target.checked)} />
+                <span>Confidențial: îl văd doar cei cărora li se dă acces explicit</span>
               </label>
             </div>
           </Section>

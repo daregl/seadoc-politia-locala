@@ -36,6 +36,14 @@ const AdminGrants = lazy(() => import('./pages/admin/Grants'));
 const AdminDirectory = lazy(() => import('./pages/admin/Directory'));
 const AdminMigration = lazy(() => import('./pages/admin/Migration'));
 const ErpPage = lazy(() => import('./pages/Erp'));
+const CasesPage = lazy(() => import('./pages/cases/Cases'));
+const CaseNewPage = lazy(() => import('./pages/cases/CaseNew'));
+const CaseDetailPage = lazy(() => import('./pages/cases/CaseDetail'));
+const AddressHistoryPage = lazy(() => import('./pages/cases/AddressHistory'));
+const PetitionReportPage = lazy(() => import('./pages/cases/PetitionReport'));
+const IntranetPage = lazy(() => import('./pages/Intranet'));
+const AdminTemplates = lazy(() => import('./pages/admin/Templates'));
+const AdminApiTokens = lazy(() => import('./pages/admin/ApiTokens'));
 const ErpRecordPage = lazy(() => import('./pages/ErpRecord'));
 
 function Lazy({ children }: { children: ReactNode }) {
@@ -109,6 +117,12 @@ const router = createBrowserRouter([
           { path: '/email-primit/:id', element: <RequirePerm perms={['register']}><EmailMessagePage /></RequirePerm> },
           { path: '/erp', element: <Lazy><ErpPage /></Lazy> },
           { path: '/erp/:id', element: <Lazy><ErpRecordPage /></Lazy> },
+          { path: '/lucrari', element: <Lazy><CasesPage /></Lazy> },
+          { path: '/lucrari/nou', element: <Lazy><CaseNewPage /></Lazy> },
+          { path: '/lucrari/raport-petitii', element: <RequirePerm perms={['reports', 'cases_all']}><PetitionReportPage /></RequirePerm> },
+          { path: '/lucrari/:id', element: <Lazy><CaseDetailPage /></Lazy> },
+          { path: '/istoric-adresa', element: <Lazy><AddressHistoryPage /></Lazy> },
+          { path: '/intranet', element: <Lazy><IntranetPage /></Lazy> },
           { path: '/rapoarte', element: <RequirePerm perms={['reports']}><ReportsPage /></RequirePerm> },
           {
             path: '/administrare',
@@ -125,6 +139,8 @@ const router = createBrowserRouter([
               { path: 'ad', element: <Lazy><AdminDirectory /></Lazy> },
               { path: 'migrare', element: <Lazy><AdminMigration /></Lazy> },
               { path: 'email', element: <Lazy><AdminEmailOutbox /></Lazy> },
+              { path: 'sabloane', element: <Lazy><AdminTemplates /></Lazy> },
+              { path: 'api', element: <Lazy><AdminApiTokens /></Lazy> },
             ],
           },
           { path: '*', element: <NotFound /> },

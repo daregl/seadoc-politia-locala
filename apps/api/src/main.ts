@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AppModule } from './app.module.js';
+import { CasesService } from './cases.js';
 import { config } from './config.js';
 import { Db } from './db.js';
 import { LdapSyncService } from './ldap.js';
@@ -141,6 +142,7 @@ async function main() {
   const app = await createApp();
   app.get(OcrService).start();
   app.get(WorkflowEngine).startScheduler();
+  app.get(CasesService).startScheduler();
   app.get(LdapSyncService).startInterval();
   app.get(MailWorker).start();
   app.get(ImapImporter).start();

@@ -53,11 +53,14 @@ export function detectMime(file: UploadFile, name: string): string {
 export interface NewDocument {
   title?: string; direction?: string; registerId?: unknown; issuer?: string; recipient?: string; summary?: string; dueDate?: string;
   documentTypeId?: unknown; departmentId?: unknown; folderId?: unknown; metadata?: unknown; personalData?: unknown;
-  linkToId?: unknown; linkKind?: string;
+  linkToId?: unknown; linkKind?: string; confidential?: unknown;
 }
 
+export const LINK_KINDS = ['raspuns_la', 'anexa_la', 'conex'];
+const CLOSED_DOC = ['arhivat', 'eliminat', 'anulat'];
+
 const LIST_COLUMNS = `d.id, d.title, d.direction, d.reg_label AS "regLabel", d.reg_date AS "regDate", d.issuer, d.recipient, d.status,
-  d.due_date AS "dueDate", d.created_at AS "createdAt", d.personal_data AS "personalData",
+  d.due_date AS "dueDate", d.created_at AS "createdAt", d.personal_data AS "personalData", d.confidential,
   t.name AS "typeName", dep.name AS "departmentName", f.name AS "folderName",
   EXISTS (SELECT 1 FROM favorites fv WHERE fv.document_id = d.id AND fv.user_id = $1) AS favorite`;
 const LIST_JOINS = `FROM documents d
@@ -77,8 +80,9 @@ export class DocumentsService {
     this.ocr.afterProcess = (versionId) => this.detectDuplicates(versionId);
   }
 
-  async create(user: CurrentUser, input: NewDocument, file: UploadFile | undefined, inTx?: (c: Queryable, doc: { id: number; regLabel: string | null }) => Promise<void>) {
-    if (!can(user, 'register')) forbidden();
+  /** `trusted`: documentul îl generează aplicația dintr-o lucrare la care utilizatorul are deja drept, fără dreptul de registratură. */
+  async create(user: CurrentUser, input: NewDocument, file: UploadFile | undefined, inTx?: (c: Queryable, doc: { id: number; regLabel: string | null }) => Promise<void>, opts: { trusted?: boolean } = {}) {
+    if (!opts.trusted && !can(user, 'register')) forbidden();
     const title = optText(input.title);
     if (!title) badRequest('Titlul este obligatoriu');
     if (!file) badRequest('Atașați un fișier');
@@ -97,7 +101,7 @@ export class DocumentsService {
     const registerId = optInt(input.registerId, 'registru');
     const linkToId = optInt(input.linkToId, 'legătură');
     const linkKind = linkToId == null ? null : optText(input.linkKind) ?? 'raspuns_la';
-    if (linkKind && !['raspuns_la', 'anexa_la'].includes(linkKind)) badRequest('Tip de legătură invalid');
+    if (linkKind && !LINK_KINDS.includes(linkKind)) badRequest('Tip de legătură invalid');
     if (linkToId != null) await this.requireVisible(user, linkToId);
     const key = await this.storage.put(file!.buffer);
     const sha256 = crypto.createHash('sha256').update(file!.buffer).digest('hex');
@@ -107,12 +111,13 @@ export class DocumentsService {
         const number = registerId == null ? null : await this.nextNumber(c, registerId);
         const doc = (await c.query(
           `INSERT INTO documents (title, direction, register_id, reg_number, reg_year, reg_label, reg_date, issuer, recipient, summary, due_date,
-             document_type_id, department_id, folder_id, owner_id, metadata, personal_data)
-           VALUES ($1,$2,$3,$4,$5,$6,CASE WHEN $3::int IS NULL THEN NULL ELSE now() END,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+             document_type_id, department_id, folder_id, owner_id, metadata, personal_data, confidential)
+           VALUES ($1,$2,$3,$4,$5,$6,CASE WHEN $3::int IS NULL THEN NULL ELSE now() END,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
            RETURNING id, reg_label AS "regLabel"`,
           [title, direction, registerId, number?.number ?? null, number?.year ?? null, number?.label ?? null,
             optText(input.issuer), optText(input.recipient), optText(input.summary), dueDate, typeId, departmentId, optInt(input.folderId, 'dosar'), user.id,
-            JSON.stringify(metadata), input.personalData === true || input.personalData === 'true'])).rows[0];
+            JSON.stringify(metadata), input.personalData === true || input.personalData === 'true',
+            input.confidential === true || input.confidential === 'true'])).rows[0];
         const version = (await c.query(
           `INSERT INTO document_versions (document_id, version_no, filename, mime, size_bytes, sha256, storage_key, created_by)
            VALUES ($1, 1, $2, $3, $4, $5, $6, $7) RETURNING id`,
@@ -159,7 +164,7 @@ export class DocumentsService {
 
   /** Accesul de citire nu dă dreptul de a înlocui fișierul. */
   async canAddVersion(user: CurrentUser, doc: any): Promise<boolean> {
-    if (['arhivat', 'eliminat'].includes(doc.status)) return false;
+    if (CLOSED_DOC.includes(doc.status)) return false;
     // Cât timp fluxul rulează, conținutul avizat nu se schimbă, decât la o cerere de completare.
     if (doc.status === 'in_flux') {
       return !!(await this.db.one(
@@ -172,7 +177,7 @@ export class DocumentsService {
 
   async addVersion(user: CurrentUser, documentId: number, file: UploadFile | undefined) {
     const doc = await this.requireVisible(user, documentId);
-    if (['arhivat', 'eliminat'].includes(doc.status)) conflict('Documentul arhivat nu se mai poate modifica');
+    if (CLOSED_DOC.includes(doc.status)) conflict('Documentul arhivat sau anulat nu se mai poate modifica');
     if (!(await this.canAddVersion(user, doc))) forbidden('Nu puteți încărca o versiune nouă pentru acest document');
     if (!file) badRequest('Atașați un fișier');
     const name = fixName(file!.originalname);
@@ -194,6 +199,29 @@ export class DocumentsService {
       await this.storage.remove(key);
       throw err;
     }
+  }
+
+  /** Lucrările din care face parte documentul; doar numărul și tipul, fără date despre petent. */
+  async casesOf(documentId: number) {
+    return (await this.db.query(
+      `SELECT c.id, c.kind, c.reg_label AS "regLabel", cd.role FROM case_documents cd JOIN cases c ON c.id = cd.case_id
+       WHERE cd.document_id = $1 ORDER BY c.id`, [documentId])).rows;
+  }
+
+  /** Anularea păstrează numărul în registru, cu motivul; documentul nu se mai poate modifica după aceea. */
+  async cancel(user: CurrentUser, id: number, reason: unknown) {
+    if (!can(user, 'register')) forbidden();
+    const text = optText(reason);
+    if (!text || text.length < 5) badRequest('Scrieți motivul anulării (cel puțin 5 caractere)');
+    const doc = await this.requireVisible(user, id);
+    if (doc.reg_label == null) conflict('Documentul nu are număr de înregistrare');
+    if (doc.status === 'in_flux') conflict('Documentul este într-un flux; opriți întâi fluxul');
+    if (!['inregistrat', 'aprobat', 'respins'].includes(doc.status)) conflict('Documentul nu mai poate fi anulat în starea curentă');
+    return this.db.tx(async (c) => {
+      await c.query(`UPDATE documents SET status = 'anulat', cancel_reason = $2, cancelled_at = now(), cancelled_by = $3 WHERE id = $1`, [id, text, user.id]);
+      await this.audit.log(user, { action: 'document.anulat', documentId: id, details: { numar: doc.reg_label, motiv: text, stareAnterioara: doc.status } }, c);
+      return { ok: true, status: 'anulat', cancelReason: text };
+    });
   }
 
   async requireVisible(user: CurrentUser, id: number) {
@@ -275,9 +303,9 @@ export class DocumentsService {
        WHERE (l.from_id = $1 OR l.to_id = $1) AND ${linkVisible}`, linkParams)).rows;
     const type = await this.db.one('SELECT id, name, nomenclator_code AS "nomenclatorCode", retention_years AS "retentionYears", fields FROM document_types WHERE id = $1', [doc.document_type_id]);
     const names = await this.db.one(
-      `SELECT dep.name AS department, u.full_name AS owner, r.name AS register, f.name AS folder
+      `SELECT dep.name AS department, u.full_name AS owner, r.name AS register, f.name AS folder, cu.full_name AS "cancelledBy"
        FROM documents d JOIN departments dep ON dep.id = d.department_id JOIN users u ON u.id = d.owner_id
-       LEFT JOIN registers r ON r.id = d.register_id LEFT JOIN folders f ON f.id = d.folder_id WHERE d.id = $1`, [id]);
+       LEFT JOIN registers r ON r.id = d.register_id LEFT JOIN folders f ON f.id = d.folder_id LEFT JOIN users cu ON cu.id = d.cancelled_by WHERE d.id = $1`, [id]);
     const favorite = !!(await this.db.one('SELECT 1 AS x FROM favorites WHERE user_id = $1 AND document_id = $2', [user.id, id]));
     const signatures = (await this.db.query(
       `SELECT s.id, s.kind, s.sha256, s.signed_at AS "signedAt", u.full_name AS signer, v.version_no AS "versionNo",
@@ -289,11 +317,14 @@ export class DocumentsService {
     return {
       id: doc.id, title: doc.title, direction: doc.direction, regLabel: doc.reg_label, regDate: doc.reg_date, issuer: doc.issuer, recipient: doc.recipient,
       summary: doc.summary, dueDate: doc.due_date, status: doc.status, metadata: doc.metadata, personalData: doc.personal_data, createdAt: doc.created_at,
+      confidential: doc.confidential, cancelReason: doc.cancel_reason, cancelledAt: doc.cancelled_at, cancelledBy: names.cancelledBy,
+      cases: await this.casesOf(id),
+      canCancel: can(user, 'register') && ['inregistrat', 'aprobat', 'respins'].includes(doc.status) && doc.reg_label != null,
       archivedAt: doc.archived_at, retentionUntil: doc.retention_until, type, ...names, ownerId: doc.owner_id, departmentId: doc.department_id,
       favorite, versions, links, signatures, duplicates: await this.duplicatesOf(user, id),
-      canEdit: !['arhivat', 'eliminat'].includes(doc.status),
+      canEdit: !CLOSED_DOC.includes(doc.status),
       canAddVersion: await this.canAddVersion(user, doc),
-      canArchive: !['arhivat', 'eliminat', 'in_flux'].includes(doc.status) && (can(user, 'archive') || doc.owner_id === user.id || (user.role === 'manager' && doc.department_id === user.departmentId)),
+      canArchive: !['arhivat', 'eliminat', 'in_flux', 'anulat'].includes(doc.status) && (can(user, 'archive') || doc.owner_id === user.id || (user.role === 'manager' && doc.department_id === user.departmentId)),
     };
   }
 
@@ -476,14 +507,19 @@ export class DocumentsController {
   @Post(':id/links') @HttpCode(200)
   async link(@User() user: CurrentUser, @Param('id') id: string, @Body() body: { toId?: unknown; kind?: string }) {
     const doc = await this.docs.requireVisible(user, toInt(id));
-    if (['arhivat', 'eliminat'].includes(doc.status)) conflict('Documentul arhivat nu se mai poate modifica');
+    if (CLOSED_DOC.includes(doc.status)) conflict('Documentul arhivat sau anulat nu se mai poate modifica');
     const toId = toInt(body.toId, 'document');
     await this.docs.requireVisible(user, toId);
     if (toId === doc.id) badRequest('Un document nu se poate lega de el însuși');
-    if (!['raspuns_la', 'anexa_la'].includes(String(body.kind))) badRequest('Tip de legătură invalid');
+    if (!LINK_KINDS.includes(String(body.kind))) badRequest('Tip de legătură invalid');
     await this.db.query('INSERT INTO document_links VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [doc.id, toId, body.kind]);
     await this.audit.log(user, { action: 'document.legatura', documentId: doc.id, details: { catre: toId, tip: body.kind } });
     return { ok: true };
+  }
+
+  @Post(':id/cancel') @HttpCode(200)
+  cancel(@User() user: CurrentUser, @Param('id') id: string, @Body() body: { reason?: unknown }) {
+    return this.docs.cancel(user, toInt(id), body.reason);
   }
 
   @Get(':id/signatures/verify')
@@ -498,11 +534,11 @@ export class DocumentsController {
     const params: unknown[] = [registerId, year];
     const visible = visibleSql(user, params);
     const rows = (await this.db.query(
-      `SELECT d.reg_label, d.reg_date, d.direction, d.title, d.issuer, d.recipient, t.name AS type_name, dep.name AS department, d.status
+      `SELECT d.reg_label, d.reg_date, d.direction, d.title, d.issuer, d.recipient, t.name AS type_name, dep.name AS department, d.status, d.cancel_reason
        FROM documents d JOIN document_types t ON t.id = d.document_type_id JOIN departments dep ON dep.id = d.department_id
        WHERE d.register_id = $1 AND d.reg_year = $2 AND ${visible} ORDER BY d.reg_number`, params)).rows;
-    const header = ['Număr', 'Data', 'Tip înregistrare', 'Titlu', 'Emitent', 'Destinatar', 'Tip document', 'Departament', 'Stare'];
-    const lines = [header.map(csvCell).join(';'), ...rows.map((r) => [r.reg_label, new Date(r.reg_date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Bucharest' }), r.direction, r.title, r.issuer, r.recipient, r.type_name, r.department, r.status].map(csvCell).join(';'))];
+    const header = ['Număr', 'Data', 'Tip înregistrare', 'Titlu', 'Emitent', 'Destinatar', 'Tip document', 'Departament', 'Stare', 'Motivul anulării'];
+    const lines = [header.map(csvCell).join(';'), ...rows.map((r) => [r.reg_label, new Date(r.reg_date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Bucharest' }), r.direction, r.title, r.issuer, r.recipient, r.type_name, r.department, r.status, r.cancel_reason].map(csvCell).join(';'))];
     await this.audit.log(user, { action: 'registru.export', details: { registru: registerId, an: year, randuri: rows.length } });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="registru-${registerId}-${year}.csv"`);

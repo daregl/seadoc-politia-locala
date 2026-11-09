@@ -12,6 +12,7 @@ import type { DocDetail, DocDuplicate, DocStatusResponse, Task } from '../../typ
 import { DocPreview } from './DocPreview';
 import { ErpSection } from './ErpSection';
 import { LinksSection } from './LinksSection';
+import { CancelButton, CancelledBanner, CasesOfDocument, DispatchSection } from './RegistrySection';
 import { RetentionSection } from './RetentionSection';
 import { SignaturesSection } from './SignaturesSection';
 import { OcrBadges, VersionsSection } from './VersionsSection';
@@ -113,11 +114,13 @@ function DocumentDetailPage({ id }: { id: number }) {
           <div className="doc-facts">
             <StatusBadge status={doc.status} />
             {doc.personalData && <Badge tone="warning">Date personale</Badge>}
+            {doc.confidential && <Badge tone="danger">Confidențial</Badge>}
             <span>{doc.type.name}</span>
             <span>{doc.department}</span>
           </div>
         </div>
         <div className="doc-header-actions">
+          <CancelButton doc={doc} onDone={afterAction} />
           {canSeeAudit && <Link className="btn" to={`/audit${qs({ documentId: doc.id })}`} aria-label="Audit document">Audit</Link>}
           <button
             type="button"
@@ -132,6 +135,7 @@ function DocumentDetailPage({ id }: { id: number }) {
         </div>
       </header>
 
+      <CancelledBanner doc={doc} />
       <ActionNotice message={notice} onDismiss={() => setNotice(null)} />
       {favError && <Alert kind="error">{favError}</Alert>}
       {error ? <ErrorAlert error={error} retry={() => void reload()} /> : null}
@@ -174,6 +178,7 @@ function DocumentDetailPage({ id }: { id: number }) {
           </Section>
           <VersionsSection doc={doc} selected={version.versionNo} onSelect={setSelected} onUploaded={async () => { setSelected(null); await reload(); }} />
           <LinksSection doc={doc} onChanged={reload} />
+          <DispatchSection doc={doc} />
           <ErpSection doc={doc} />
         </div>
         <div className="doc-col-side">
@@ -197,6 +202,7 @@ function DocumentDetailPage({ id }: { id: number }) {
               </div>
             )}
           </Section>
+          <CasesOfDocument doc={doc} />
           <WorkflowSection doc={doc} onStarted={afterAction} />
           <SignaturesSection doc={doc} onSigned={afterAction} />
           <RetentionSection doc={doc} onArchived={afterAction} />

@@ -52,7 +52,9 @@ export function NotificationsBell() {
     } catch (err) {
       setError(errorMessage(err));
     }
-    if (item.documentId) {
+    if (item.link) {
+      navigate(item.link);
+    } else if (item.documentId) {
       navigate(item.taskId ? `/documente/${item.documentId}#sarcina` : `/documente/${item.documentId}`);
     } else if (item.taskId) {
       navigate('/sarcini');

@@ -6,7 +6,7 @@ import { Alert, Empty, ErrorAlert, Field, Section } from '../../components/Ui';
 import { LINK_KIND } from '../../labels';
 import type { DocDetail } from '../../types';
 
-const REVERSE: Record<string, string> = { raspuns_la: 'Are ca răspuns', anexa_la: 'Are ca anexă' };
+const REVERSE: Record<string, string> = { raspuns_la: 'Are ca răspuns', anexa_la: 'Are ca anexă', conex: 'Conex cu' };
 
 export function LinksSection({ doc, onChanged }: { doc: DocDetail; onChanged: () => Promise<void> }) {
   const [adding, setAdding] = useState(false);

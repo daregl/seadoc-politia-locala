@@ -51,10 +51,10 @@ export function undeliverableReason(address: string): string | null {
   return null;
 }
 
-export function composeEmail(title: string, refs: { documentId?: number | null }) {
+export function composeEmail(title: string, refs: { documentId?: number | null; link?: string | null }) {
   const line = oneLine(title);
   const base = appUrl();
-  const target = refs.documentId != null ? `/documente/${refs.documentId}` : '/sarcini';
+  const target = refs.link ?? (refs.documentId != null ? `/documente/${refs.documentId}` : '/sarcini');
   const body = [
     line,
     '',
@@ -66,7 +66,7 @@ export function composeEmail(title: string, refs: { documentId?: number | null }
 }
 
 /** Doar un INSERT pe clientul tranzacției: nicio operație de rețea, iar anularea tranzacției anulează și emailul. */
-export async function enqueueEmail(client: Queryable, userId: number, kind: string, title: string, refs: { documentId?: number; taskId?: number }) {
+export async function enqueueEmail(client: Queryable, userId: number, kind: string, title: string, refs: { documentId?: number; taskId?: number; link?: string }) {
   if (!smtpSettings()) return;
   const user = (await client.query('SELECT email, active FROM users WHERE id = $1', [userId])).rows[0];
   const address = user?.active ? optText(user.email) : null;

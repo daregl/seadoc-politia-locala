@@ -5,6 +5,7 @@ import { fmtDate, fmtDateTime, plural } from '../format';
 import { useAsync, usePageTitle } from '../hooks';
 import { TASK_KIND } from '../labels';
 import type { Dashboard } from '../types';
+import { CasesDashboard } from './cases/CasesDashboard';
 
 const todayFmt = new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -26,6 +27,7 @@ export default function DashboardPage() {
         <p className="page-date">{todayFmt.format(new Date())}</p>
       </header>
       <ErrorAlert error={error} retry={() => void reload()} />
+      <CasesDashboard />
       {loading && !data && <Loading />}
       {data && (
         <div className={hasTasks ? 'dash-grid' : 'dash-grid dash-grid-even'}>

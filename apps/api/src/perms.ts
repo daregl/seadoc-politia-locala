@@ -11,6 +11,8 @@ export const PERMISSIONS = {
   audit_all: ['admin'],
   reports: ['admin', 'manager'], // managerul doar pe departament
   archive_journal: ['admin', 'arhivar'],
+  cases_all: ['admin', 'registratura'], // toate lucrările (petiții, 544, contravenții, controale)
+  intranet_publish: ['admin', 'manager'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -53,17 +55,21 @@ export function visibleSql(user: CurrentUser, params: unknown[], alias = 'd'): s
   const parts = [
     `${alias}.owner_id = ${uid}`,
     `EXISTS (SELECT 1 FROM document_access da WHERE da.document_id = ${alias}.id AND da.user_id = ${uid})`,
+    `EXISTS (SELECT 1 FROM access_grants g WHERE g.user_id = ${uid} AND g.scope = 'document' AND g.target_id = ${alias}.id)`,
+  ];
+  // Accesul larg (dosar, tip, departament) nu acoperă documentele confidențiale.
+  const broad = [
     `EXISTS (SELECT 1 FROM access_grants g WHERE g.user_id = ${uid} AND (
-       (g.scope = 'document' AND g.target_id = ${alias}.id) OR
        (g.scope = 'folder' AND g.target_id = ${alias}.folder_id) OR
        (g.scope = 'type' AND g.target_id = ${alias}.document_type_id) OR
        (g.scope = 'department' AND g.target_id = ${alias}.department_id)))`,
   ];
   if (['manager', 'registratura', 'arhivar'].includes(user.role) && user.departmentId != null) {
     params.push(user.departmentId);
-    parts.push(`${alias}.department_id = $${params.length}`);
+    broad.push(`${alias}.department_id = $${params.length}`);
   }
   // Arhivarul trebuie să vadă documentele soluționate, ca să le poată arhiva.
-  if (user.role === 'arhivar') parts.push(`${alias}.status IN ('aprobat','respins','arhivat','eliminat')`);
+  if (user.role === 'arhivar') broad.push(`${alias}.status IN ('aprobat','respins','arhivat','eliminat')`);
+  parts.push(`(NOT ${alias}.confidential AND (${broad.join(' OR ')}))`);
   return `(${parts.join(' OR ')})`;
 }

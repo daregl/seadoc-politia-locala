@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Archive, ChartColumn, ChevronDown, Database, FileText, House, Inbox, ListChecks, Lock, Menu,
+  Archive, ChartColumn, ChevronDown, Database, FileText, FolderOpen, House, Inbox, ListChecks, Lock, MapPin, Megaphone, Menu,
   Search, Settings, ShieldCheck, UserRound, Workflow, X, type LucideIcon,
 } from 'lucide-react';
 import { api, qs } from '../api';
@@ -24,6 +24,14 @@ const NAV_GROUPS: NavGroup[] = [
       { to: '/sarcini', label: 'Sarcinile mele', icon: ListChecks },
       { to: '/documente', label: 'Documente', icon: FileText },
       { to: '/email-primit', label: 'Email primit', icon: Inbox, perms: ['register'] },
+    ],
+  },
+  {
+    title: 'Lucrări',
+    items: [
+      { to: '/lucrari', label: 'Lucrări', icon: FolderOpen },
+      { to: '/istoric-adresa', label: 'Istoric pe adresă', icon: MapPin },
+      { to: '/intranet', label: 'Intranet', icon: Megaphone },
     ],
   },
   {

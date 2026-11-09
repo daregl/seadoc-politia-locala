@@ -70,8 +70,11 @@ Importul rulează doar din linia de comandă (vezi README). Rutele de mai jos do
 - `POST /documents/:id/versions` multipart `file`. `PUT|DELETE /documents/:id/favorite`
 - `POST /documents/:id/links {toId, kind}`. `GET /documents/:id/signatures/verify` → `[{id, kind, valid, certificate?:{verdict,chain,message,testIndicators}}]`; `valid` = conținutul și sigiliul corespund, iar pentru `certificat` și amprenta și CMS-ul din PDF. Nu spune nimic despre statutul calificat.
 - `GET /documents/:id/preview?version` → `{kind:"html",format:"docx"|"xlsx"|"pptx",html,truncated,notes:[]}` sau `{kind:"descarcare",message}` (formate binare vechi și alte tipuri). HTML-ul trece pe server printr-o listă de permisiuni: fără scripturi, evenimente, stiluri sau imagini externe; se afișează într-un iframe `sandbox`. Fișier care depășește limitele de timp, memorie sau dezarhivare = 422. Aceeași vizibilitate și același audit ca la `/file`.
-- `GET /documents/export/register?registerId&year` → CSV (`register`)
-- Stări document: `inregistrat, in_flux, aprobat, respins, arhivat, eliminat`. OCR: `in_asteptare, in_lucru, finalizat, esuat, neaplicabil`
+- `GET /documents/export/register?registerId&year` → CSV (`register`), cu o coloană pentru motivul anulării
+- `POST /documents :confidential=true` marchează documentul confidențial: drepturile largi (pe dosar, tip sau compartiment) și accesul pe compartiment al șefului, registraturii și arhivarului nu îl mai acoperă. Îl văd proprietarul, cei cu drept explicit pe document sau care au primit acces prin flux, și administratorul.
+- `POST /documents/:id/cancel {reason}` (cel puțin 5 caractere) anulează înregistrarea: numărul rămâne în registru, documentul devine `anulat` și nu mai primește versiuni, legături, flux sau arhivare. Cere `register`. Se pot anula doar documentele cu număr de înregistrare, în starea `inregistrat`, `aprobat` sau `respins`; în flux sau altă stare = 409. Audit `document.anulat`.
+- `GET /documents/:id` adaugă `confidential, cancelReason, cancelledAt, cancelledBy, cases:[{id,kind,regLabel}], canCancel`. `links[].kind` acceptă și `conex`.
+- Stări document: `inregistrat, in_flux, aprobat, respins, arhivat, eliminat, anulat`. OCR: `in_asteptare, in_lucru, finalizat, esuat, neaplicabil`
 
 ## Semnături în PDF (`src/qualified-sign.ts`, `src/pdf-signatures.ts`; agentul în `apps/agent`)
 
@@ -93,7 +96,7 @@ Semnătura cu certificat, în două faze (cere `sign_qualified`):
 
 ## Notificări (`src/notifications.ts`, implementat)
 
-`GET /notifications` → `{unread, items:[{id,kind,title,documentId,taskId,readAt,createdAt}]}`; `POST /notifications/read-all`; `POST /notifications/:id/read`
+`GET /notifications` → `{unread, items:[{id,kind,title,documentId,taskId,link,readAt,createdAt}]}`; `POST /notifications/read-all`; `POST /notifications/:id/read`. `link` este o rută din interfață (de exemplu `/lucrari/12`, `/intranet`) pentru notificările care nu țin de un document.
 
 ## Email (`src/mail.ts`, `src/mail-inbox.ts`)
 
@@ -197,3 +200,95 @@ Audit: `gdpr.cerere_creata`, `gdpr.cerere_modificata`, `gdpr.cerere_consultata`,
 - `GET /archive/proposals` → `[{id,documentId,title,regLabel,retentionUntil,reason,proposedBy,proposedAt,status,decidedBy,decidedAt}]` (cere `archive`, ca și rutele de mai jos)
 - `POST /archive/proposals {documentId,reason?}`: doar dacă termenul a expirat
 - `POST /archive/proposals/:id/decide {approve:boolean}`: decide altă persoană decât cea care a propus. Aprobat → fișierele se șterg din stocare, documentul devine `eliminat`, textul extras se golește, metadatele și hash-urile rămân.
+
+## Lucrări: petiții, informații publice, contravenții, control (`src/cases.ts`)
+
+O lucrare grupează documentele, termenele și pașii unui caz. `kind` = `petitie` (O.G. nr. 27/2002, prefix `P`), `informatii_publice` (Legea nr. 544/2001, `I`), `contraventie` (O.G. nr. 2/2001, `DC`), `control` (acțiune de control, `AC`). Numerotarea este anuală, pe tip: `P-00001/2026`. Stări: `deschisa`, `inchisa`.
+
+Vizibilitate: `cases_all` (admin, registratură) vede tot. Ceilalți văd lucrările create de ei, repartizate lor (sau un obiect al lor) și pe cele ale compartimentelor pe care le conduc. Un șef vede și compartimentele subordonate din organigramă, așa că șeful compartimentului rădăcină vede toată instituția.
+
+Termenul (`dueOn`, calculat în SQL):
+- petiție: 30 de zile de la înregistrare, plus prelungirea (o singură dată, 1–15 zile);
+- informații publice: 10 zile, prelungite la 30 doar în primele 10 zile; refuzul motivat se comunică în 5;
+- contravenție: 2 luni de la aplicare, pentru comunicarea procesului-verbal; după comunicare nu mai există termen al instituției;
+- control: termenul stabilit manual (`manualDueOn`).
+
+`readyForExecution` marchează amenzile neachitate și netrimise spre executare, dacă au trecut 15 zile de la comunicare fără plângere sau dacă plângerea a fost respinsă ori admisă parțial.
+
+- `GET /cases?kind&status=deschisa|inchisa|toate&q&mine=1&overdue=1&readyForExecution=1&assigneeId&departmentId&from&to&limit&offset` → `{total, items:[{id,kind,regLabel,subject,applicantName,location,receivedOn,dueOn,daysLeft,overdue,status,outcome,assigneeName,departmentName,…}]}`
+- `POST /cases {kind, subject, receivedOn?, departmentId?, assigneeId?, documentId?, parentId?, applicantName?, applicantAddress?, applicantEmail?, applicantPhone?, anonymous?, channel?, location?, manualDueOn?, objects?:[text|{text,departmentId?,assigneeId?}], details?, contravention?}`
+  - Petițiile și cererile 544 le înregistrează doar `register` sau `cases_all`. Numele petentului e obligatoriu, cu excepția petiției anonime.
+  - Controlul cere `location`.
+  - `contravention` = `{pvSeries, pvNumber, offenderName, offenderIdCode?, offenderAddress?, fact, legalBasis, sanction: amenda|avertisment, amount?, minAmount?, agentId?, observedAt?, appliedOn?, communicatedOn?, communicationMethod?: inmanare|posta|afisare}`. Seria și numărul sunt unice.
+  - La contravenție și control, responsabilul implicit este cel care înregistrează.
+  - Data înregistrării în viitor = 400.
+- `GET /cases/:id` → lucrarea, cu `objects`, `documents:[{documentId,regLabel,title,role,status}]`, `events`, `photos`, `dispatches`, `deadlines:[{key,label,date,met}]`, `contravention` (pentru `DC`), `children` (lucrări conexate), `templates` (șabloanele potrivite tipului), `outcomes` (soluțiile posibile), `canEdit`, `canExtend`, `extensionHint` (de ce nu se poate prelungi).
+- `PATCH /cases/:id {subject?, applicant*?, channel?, location?, manualDueOn? (doar control), details?}`. `details` se combină cu cel existent; la control, `details.findings` reține constatările.
+- `POST /cases/:id/assign {assigneeId?, departmentId?, note?}`: `note` este rezoluția. Notifică responsabilul.
+- `POST /cases/:id/extend {days?, reason}`: petiție 1–15 zile, o dată; cererea 544 trece la 30 de zile, doar în primele 10. Altfel = 409.
+- `POST /cases/:id/close {outcome, note, redirectedTo?, parentId?}`. Soluții:
+  - petiție: `favorabil, nefavorabil, partial, redirectionata, clasata, conexata`;
+  - informații publice: `comunicat, partial, refuz, redirectionata, inexistenta`;
+  - contravenție: `achitat, executare, anulat_instanta, avertisment, prescris`;
+  - control: `fara_deficiente, masuri_dispuse, sanctiuni_aplicate`.
+  - Reguli: `redirectionata` cere `redirectedTo`. `conexata` cere `parentId`, o lucrare de același tip. Soluțiile pe fond (`favorabil`, `nefavorabil`, `partial`, `comunicat`) cer toate obiectele soluționate. `achitat` cere data plății, iar `executare` cere trimiterea spre executare.
+- `POST /cases/:id/reopen {reason}`; `POST /cases/:id/notes {note}`
+- `POST /cases/:id/objects {text, departmentId?, assigneeId?}`; `PATCH /cases/:id/objects/:objectId {answer?, status?: deschis|solutionat, assigneeId?, departmentId?}`. `solutionat` cere răspuns.
+- `POST /cases/:id/documents {documentId, role}`, cu `role` = `principal, raspuns, adresa, proces_verbal, plangere, hotarare, dovada, anexa, alt`
+- `POST /cases/:id/photos` multipart: `file` (JPEG sau PNG), `latitude?`, `longitude?`, `note?`. `GET /cases/:id/photos/:photoId` întoarce imaginea, cu audit.
+- `PATCH /cases/:id/contravention {communicatedOn?, communicationMethod?, paidOn?, paidAmount?, complaintFiledOn?, court?, courtFile?, decisionOn?, decisionOutcome?: plangere_respinsa|plangere_admisa|admisa_partial|inlocuire_avertisment, executionSentOn?, executionBody?}`. Validări:
+  - nicio dată nu e în viitor și niciuna nu e înaintea aplicării;
+  - hotărârea cere plângere;
+  - amenda achitată și avertismentul nu se trimit spre executare;
+  - trimiterea spre executare cere organul de executare.
+- `GET /cases/history?location=` (cel puțin 3 caractere) → `{location, cases:[…], documents:[…]}`. Adresa se împarte în cuvinte, iar fiecare cuvânt trebuie să apară, fără diacritice, în locul sau adresa petentului din lucrare. Documentele se caută full-text. Rezultatele respectă vizibilitatea.
+- `GET /cases/dashboard` → `{scope: institutie|serviciu|personal, byDepartment, byKind:[{kind,open,overdue,dueSoon,readyForExecution}], urgent:[…], breakdown:[{label,open,overdue}], unassigned, closedThisMonth}`. `breakdown` e pe compartimente pentru conducere și pentru șefii cu subordonate, pe responsabili pentru ceilalți șefi.
+- `GET /cases/reports/petitions?year&semester` → situația semestrială (art. 13 din O.G. nr. 27/2002): `{year, semester, from, to, institution, totals:{total,open,inTerm,overTerm,extended,anonymous,multipleObjects,communicated}, byOutcome, byDepartment, byChannel, byMonth}`. `…/csv` dă același conținut ca fișier. Cere `reports` sau `cases_all`.
+
+Termene: planificatorul (`SCHEDULER_MS`) trimite o notificare cu 3 zile înainte de termen și una de escaladare la depășire, către responsabil și șeful compartimentului, fiecare o singură dată. Prelungirea sau redeschiderea le resetează.
+
+Audit: `lucrare.inregistrata`, `lucrare.modificata`, `lucrare.repartizata`, `lucrare.termen_prelungit`, `lucrare.inchisa`, `lucrare.redeschisa`, `lucrare.document_adaugat`, `lucrare.fotografie`, `lucrare.fotografie_vizualizata`, `lucrare.contraventie_actualizata`.
+
+### Șabloane și documente generate
+
+- `GET /templates?kind` → `[{id,code,name,caseKind,caseRole,title,body,documentTypeId,registerId,active,fields}]`. Câmpurile se scriu în text ca `{{camp}}`.
+- `POST /templates {code,name,caseKind?,caseRole,title,body,documentTypeId?,registerId?,active?}` și `PUT /templates/:id {…}` (cer `users_admin`)
+- `GET|PUT /templates/institution {name,address,phone,email,leader,leaderTitle}`: antetul documentelor. `PUT` cere `users_admin`.
+- `GET /cases/:id/templates/:templateId` → `[{key,label,value}]`: câmpurile completate din lucrare
+- `GET /cases/:id/templates/:templateId/preview?values=<JSON>` → PDF-ul, fără înregistrare
+- `POST /cases/:id/generate {templateId, documentTypeId?, registerId?, title?, values?}` → `{id, regLabel}`. PDF-ul cu antet se înregistrează ca document (`iesit`, sau `intern` pentru procese-verbale), se leagă de lucrare cu rolul șablonului și apare ca eveniment.
+
+### Expediere și dovada comunicării
+
+- `GET /documents/:id/dispatches`; `POST /documents/:id/dispatches` sau `POST /cases/:id/dispatches {documentId?, method, recipient, address?, sentOn?, tracking?, note?, isAnswer?}`
+  - `method` = `posta, posta_recomandata, email, curier, inmanare, fax, afisare`.
+  - Înmânarea, emailul și afișarea se consideră primite în ziua trimiterii.
+  - `isAnswer` marchează răspunsul către petent și intră în `communicated` din situația semestrială.
+  - Documentul anulat nu se expediază.
+- `POST /dispatches/:id/delivered` multipart `{deliveredOn?, file?}`: confirmarea de primire, cu dovada scanată opțională. `GET /dispatches/:id/proof` întoarce dovada.
+
+## Intranet (`src/intranet.ts`)
+
+- `GET /intranet?kind=anunt|procedura&all=1` → anunțurile vizibile utilizatorului (generale sau ale compartimentului său, neretrase, neexpirate), cu `readAt`, `acknowledgedAt`, `ackCount`. `all=1` (cere `intranet_publish`) le include și pe cele retrase sau expirate.
+- `POST /intranet {kind, title, body, departmentId?, documentId?, pinned?, requiresAck?, expiresOn?}` (cere `intranet_publish`: admin, manager) → `{id, notified}`.
+  - Fără `departmentId`, anunțul este general.
+  - Un șef publică doar pentru compartimentul lui. Conducerea (compartimentul cu subordonate) și administratorul publică și anunțuri generale.
+  - Destinatarii primesc notificare.
+- `POST /intranet/:id/read {acknowledge?}`: citire sau confirmare de luare la cunoștință
+- `GET /intranet/:id/acknowledgements` → `[{fullName,departmentName,readAt,acknowledgedAt}]`; `DELETE /intranet/:id` retrage anunțul (autorul sau admin)
+
+## Tokenuri de API pentru integrări (`src/intranet.ts`, `src/auth.ts`)
+
+- `GET /admin/api-tokens`, `POST /admin/api-tokens {name, userId, expiresOn?}` → `{id, token}`, `DELETE /admin/api-tokens/:id` (revocare). Toate cer `users_admin`.
+- Tokenul (`sd_…`) se afișează o singură dată; baza păstrează doar SHA-256.
+- Se trimite ca `Authorization: Bearer sd_…`. Cererea are drepturile contului legat, fără cookie, MFA sau CSRF. Tokenul revocat, expirat sau al unui cont inactiv = 401.
+
+## Export complet (`scripts/export-full.ts`)
+
+`npm run export:full -w @seadoc/api -- <director>` scrie:
+- câte un CSV pentru fiecare tabel, cu secretele înlocuite;
+- fișierele decriptate, cu numele lor originale;
+- `manifest.json`, cu SHA-256 pentru fiecare fișier;
+- `CITESTE.txt`, care descrie structura.
+
+Exportul servește la predarea datelor la încetarea contractului.

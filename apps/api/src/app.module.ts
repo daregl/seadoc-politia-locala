@@ -3,6 +3,7 @@ import { AdminController, MetaController } from './admin.js';
 import { ArchiveController, ArchiveService } from './archive.js';
 import { AuditService } from './audit.js';
 import { AuthController, AuthGuard, AuthService } from './auth.js';
+import { CasesController, CasesService, DispatchController, TemplatesController } from './cases.js';
 import { Db } from './db.js';
 import { DocumentErpController, ErpController, ErpService } from './erp.js';
 import { LdapController, LdapSyncService } from './ldap.js';
@@ -13,6 +14,7 @@ import { DocumentsController, DocumentsService } from './documents.js';
 import { PreviewController, PreviewService } from './preview.js';
 import { PdfSignaturesController, QualifiedSignService, SigningController } from './qualified-sign.js';
 import { GdprRequestsController, GdprRequestService } from './gdpr-requests.js';
+import { ApiTokensController, IntranetController } from './intranet.js';
 import { MailAdminController, MailWorker } from './mail.js';
 import { ImapImporter, InboxController, InboxService } from './mail-inbox.js';
 import { NotificationController, NotificationService } from './notifications.js';
@@ -48,6 +50,11 @@ import { DashboardController, DocumentWorkflowController, TasksController, Workf
     TasksController,
     DashboardController,
     DocumentWorkflowController,
+    CasesController,
+    DispatchController,
+    TemplatesController,
+    IntranetController,
+    ApiTokensController,
   ],
   providers: [
     Db,
@@ -70,6 +77,7 @@ import { DashboardController, DocumentWorkflowController, TasksController, Workf
     PreviewService,
     ArchiveService,
     WorkflowEngine,
+    CasesService,
   ],
 })
 export class AppModule {}

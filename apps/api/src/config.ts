@@ -21,7 +21,8 @@ export const config = {
   cookieSecure: process.env.COOKIE_SECURE === 'true',
   // Numărul de proxy-uri de încredere din fața aplicației (0 = fără proxy).
   trustProxy: Number(process.env.TRUST_PROXY ?? 0),
-  webDist: path.join(ROOT, 'apps/web/dist'),
+  // Altă construcție a interfeței, pentru previzualizare fără să atingem cea servită live.
+  webDist: process.env.WEB_DIST ? path.resolve(ROOT, process.env.WEB_DIST) : path.join(ROOT, 'apps/web/dist'),
   migrationsDir: path.join(ROOT, 'apps/api/migrations'),
   schedulerMs: Number(process.env.SCHEDULER_MS ?? 60_000),
   ocrPollMs: Number(process.env.OCR_POLL_MS ?? 2_000),

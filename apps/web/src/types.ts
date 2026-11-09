@@ -3,7 +3,7 @@
 export type Role = 'admin' | 'manager' | 'user' | 'registratura' | 'arhivar';
 export type Permission =
   | 'register' | 'approve' | 'sign_qualified' | 'workflow_edit' | 'archive'
-  | 'users_admin' | 'audit_all' | 'reports' | 'archive_journal';
+  | 'users_admin' | 'audit_all' | 'reports' | 'archive_journal' | 'cases_all' | 'intranet_publish';
 
 export interface User {
   id: number;
@@ -24,7 +24,7 @@ export type LoginState = 'ok' | 'mfa' | 'mfa_enrol' | 'change_password';
 export interface AuthResponse { state: LoginState; user?: User }
 export interface MfaEnrolment { secret: string; uri: string; qr: string }
 
-export type DocStatus = 'inregistrat' | 'in_flux' | 'aprobat' | 'respins' | 'arhivat' | 'eliminat';
+export type DocStatus = 'inregistrat' | 'in_flux' | 'aprobat' | 'respins' | 'arhivat' | 'eliminat' | 'anulat';
 export type OcrStatus = 'in_asteptare' | 'in_lucru' | 'finalizat' | 'esuat' | 'neaplicabil';
 export type Direction = 'intrat' | 'iesit' | 'intern';
 
@@ -40,6 +40,7 @@ export interface DocListItem {
   dueDate: string | null;
   createdAt: string;
   personalData: boolean;
+  confidential?: boolean;
   typeName: string;
   departmentName: string;
   folderName: string | null;
@@ -63,7 +64,7 @@ export interface DocVersion {
   createdAt: string;
   createdBy: string;
 }
-export interface DocLink { kind: 'raspuns_la' | 'anexa_la'; dir: 'catre' | 'de_la'; id: number; title: string; regLabel: string | null }
+export interface DocLink { kind: 'raspuns_la' | 'anexa_la' | 'conex'; dir: 'catre' | 'de_la'; id: number; title: string; regLabel: string | null }
 export interface DocSignature {
   id: number;
   kind: string;
@@ -142,6 +143,12 @@ export interface DocDetail {
   canEdit: boolean;
   canAddVersion: boolean;
   canArchive: boolean;
+  confidential: boolean;
+  cancelReason: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+  canCancel: boolean;
+  cases: { id: number; kind: string; regLabel: string; role: string }[];
 }
 export interface DocStatusResponse {
   versions: { versionNo: number; ocrStatus: OcrStatus; ocrUsed: boolean; hasSearchable: boolean }[];
@@ -154,6 +161,7 @@ export interface Notification {
   title: string;
   documentId: number | null;
   taskId: number | null;
+  link: string | null;
   readAt: string | null;
   createdAt: string;
 }

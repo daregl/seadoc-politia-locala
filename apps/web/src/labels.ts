@@ -19,6 +19,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   audit_all: 'Audit complet',
   reports: 'Rapoarte',
   archive_journal: 'Jurnal arhivă',
+  cases_all: 'Toate lucrările (petiții, 544, contravenții)',
+  intranet_publish: 'Publicare în Intranet',
 };
 
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
@@ -30,6 +32,7 @@ export const DOC_STATUS: Record<DocStatus, { label: string; tone: Tone }> = {
   respins: { label: 'Respins', tone: 'danger' },
   arhivat: { label: 'Arhivat', tone: 'neutral' },
   eliminat: { label: 'Eliminat', tone: 'warning' },
+  anulat: { label: 'Anulat', tone: 'danger' },
 };
 export const DIRECTION_LABELS: Record<Direction, string> = { intrat: 'Intrare', iesit: 'Ieșire', intern: 'Intern' };
 
@@ -64,7 +67,7 @@ export const APPROVE_LABEL: Record<TaskKind, string> = {
   completare: 'Completare finalizată',
 };
 
-export const LINK_KIND: Record<string, string> = { raspuns_la: 'Răspuns la', anexa_la: 'Anexă la' };
+export const LINK_KIND: Record<string, string> = { raspuns_la: 'Răspuns la', anexa_la: 'Anexă la', conex: 'Conex cu' };
 export const DUPLICATE_KIND: Record<string, string> = {
   amprenta: 'fișier identic',
   text: 'text similar',
@@ -82,6 +85,31 @@ export const PROPOSAL_STATUS: Record<string, { label: string; tone: Tone }> = {
 };
 
 export const AUDIT_ACTIONS: Record<string, string> = {
+  'document.anulat': 'Înregistrare anulată',
+  'document.expediat': 'Document expediat',
+  'document.confirmare_primire': 'Confirmare de primire',
+  'lucrare.inregistrata': 'Lucrare înregistrată',
+  'lucrare.consultata': 'Lucrare consultată',
+  'lucrare.modificata': 'Lucrare modificată',
+  'lucrare.repartizata': 'Lucrare repartizată',
+  'lucrare.termen_prelungit': 'Termen prelungit',
+  'lucrare.inchisa': 'Lucrare închisă',
+  'lucrare.redeschisa': 'Lucrare redeschisă',
+  'lucrare.escaladata': 'Termen depășit, escaladat',
+  'lucrare.document_adaugat': 'Document adăugat la lucrare',
+  'lucrare.fotografie': 'Fotografie adăugată',
+  'lucrare.fotografie_vizualizata': 'Fotografie vizualizată',
+  'lucrare.contraventie_actualizata': 'Dosar contravențional actualizat',
+  'lucrare.cautare': 'Căutare în lucrări',
+  'lucrare.istoric_adresa': 'Istoric pe adresă',
+  'raport.petitii_semestrial': 'Situația semestrială a petițiilor',
+  'intranet.publicat': 'Publicare în Intranet',
+  'intranet.retras': 'Anunț retras',
+  'intranet.luat_la_cunostinta': 'Luare la cunoștință',
+  'admin.sablon': 'Șablon modificat',
+  'admin.institutie': 'Datele instituției modificate',
+  'admin.token_api_creat': 'Token API creat',
+  'admin.token_api_revocat': 'Token API revocat',
   'auth.login': 'Autentificare reușită',
   'auth.login_esuat': 'Autentificare eșuată',
   'auth.login_blocat': 'Autentificare refuzată: cont blocat',

@@ -13,6 +13,8 @@ const TABS = [
   { to: 'ad', label: 'Sincronizare AD' },
   { to: 'migrare', label: 'Migrare' },
   { to: 'email', label: 'Email' },
+  { to: 'sabloane', label: 'Șabloane' },
+  { to: 'api', label: 'API' },
 ];
 
 export default function AdminPage() {
